@@ -1,6 +1,5 @@
+
 'use strict';
-
-
 
 var functions = require('firebase-functions');
 const https = require('https');
@@ -57,10 +56,6 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                 response.end("Successful clock in");
             })
         }
-
-
-
-
     })
 
 
@@ -71,6 +66,7 @@ exports.clockOut = functions.https.onRequest((request, response) => {
     var firestore = admin.firestore();
     var contactId = request.query.conId
     var location = request.query.location
+
 
     firestore.collection("users/" + contactId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
         if (shiftCollection.size != 0) {
@@ -189,7 +185,6 @@ exports.clockOut = functions.https.onRequest((request, response) => {
                 }
             })
 
-
         } else {
             response.status(201)
             response.end("There is no open shift")
@@ -212,9 +207,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
     var firestore = admin.firestore();
 
     firestore.collection("users/" + contactId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
-
         if (shiftCollection.size != 0){
-
             shiftCollection.forEach(function (latestShiftDoc) {
                 if (latestShiftDoc.data().endTime != null) {
                     response.status(400)
@@ -237,6 +230,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
                                             if (latestBreak.data().endTime == null) {
                                                 response.status(400)
                                                 response.end("User is on break. Please end The break before starting a job")
+
                                             } else {
 
                                                 firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
@@ -249,9 +243,9 @@ exports.startJob = functions.https.onRequest((request, response) => {
                                         })
                                     })
 
+
                                 }
                             })
-
                         } else {
                             firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
                                 breakCollection.forEach(function (latestBreak) {
@@ -270,7 +264,6 @@ exports.startJob = functions.https.onRequest((request, response) => {
                                 })
                             })
                         }
-
 
                     })
                 }
@@ -300,8 +293,6 @@ exports.endJob = functions.https.onRequest((request, response) => {
                         response.status(201)
                         response.end("There is no open shift")
                     } else {
-
-
 
 
                         firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime").limit(1).get().then(function (jobCollection) {
@@ -380,7 +371,6 @@ exports.endJob = functions.https.onRequest((request, response) => {
                                     response.end("There is no open job")
                                 }
                             })
-
                     }
                 })
             } else {
@@ -388,9 +378,6 @@ exports.endJob = functions.https.onRequest((request, response) => {
                 response.end("There is no open shift")
             }
         })
-
-
-
 
 })
 
@@ -423,7 +410,6 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                         if (jobCollection.exists) {
                                             var jobId
                                             jobCollection.forEach(function (latestJobDoc) {
-
                                                 if (latestJobDoc.exists && latestJobDoc.data().endTime == null) {
                                                     jobId = latestJobDoc.id
                                                 }
@@ -462,6 +448,7 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                     })
                                 }
 
+
                                 if (jobId == null) {
 
                                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").add({
@@ -480,6 +467,7 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                 }
 
 
+
                             })
                         }
 
@@ -491,7 +479,6 @@ exports.startBreak = functions.https.onRequest((request, response) => {
             response.status(400)
             response.end("There is no open shift")
         }
-
     })
 
 })
@@ -541,7 +528,6 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                 })
                                             })
 
-
                                         })
                                     })
                                 }
@@ -559,13 +545,14 @@ exports.endBreak = functions.https.onRequest((request, response) => {
             response.sendError( "There is not an open timesheet");
             response.end()
         }
-
     })
 
 
 })
 
+
 exports.notificationFromCol = functions.https.onRequest((request, response) => {
+
 
     var conId = request.query.conId
     var content = request.query.content
@@ -578,11 +565,11 @@ exports.notificationFromCol = functions.https.onRequest((request, response) => {
     console.log(content)
     console.log(type)
 
-
     var iOSToken = db.ref('/users/' + conId + '/tokens/ios');
 
 
     db.ref('/users/' + conId + '/notifications/' + type).push().set(itemId)
+
 
     // db.ref('/users/' + conId + '/notifications/' + type).once("value", function (snapshot) {
 
@@ -591,6 +578,7 @@ exports.notificationFromCol = functions.https.onRequest((request, response) => {
     //         currentnumber++;
     //         db.ref('/users/' + conId + '/notifications/' + type).set(currentnumber);
     //     }
+
     //     else {
     //         db.ref('/users/' + conId + '/notifications/' + type).set(1);
     //     }
@@ -645,7 +633,6 @@ exports.notificationFromCol = functions.https.onRequest((request, response) => {
         }
 
     })
-
     response.end('Notifications sent');
 
 })
@@ -692,8 +679,6 @@ exports.sendNotification = functions.database
         else {
             body = message.content;
         }
-
-
         var userName;
         var db = admin.database();
 
@@ -704,7 +689,6 @@ exports.sendNotification = functions.database
                 shit.once("value", function(userIds) {
 
             userIds.forEach(function (childSnap) {
-
                 if (senderUid == childSnap.key) {
                     console.log('Self notification')
                     return;
@@ -712,6 +696,7 @@ exports.sendNotification = functions.database
 
                 try {
                     var userChatRef = db.ref('/users/' + childSnap.key + '/chats/' + event.params.chatId);
+
                     userChatRef.once("value", function (isInChatSnap) {
                         if (isInChatSnap.val == false) {
                             return;
@@ -748,6 +733,7 @@ exports.sendNotification = functions.database
                                         });
                                 }
 
+
                             })
 
                         }
@@ -756,8 +742,6 @@ exports.sendNotification = functions.database
                 } catch (err) {
                    console.log("Android try catch block", err)
                 }
-
-
                 try {
                     console.log("Are we getting here or what")
                     var userTokens = db.ref('/users/' + childSnap.key + '/tokens/ios');
@@ -798,7 +782,6 @@ exports.sendNotification = functions.database
 
 
             })
-
             }, function(errorObject) {
                 console.log("we really messed up")
             })
