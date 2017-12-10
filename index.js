@@ -10,7 +10,7 @@ admin.initializeApp(functions.config().firebase);
 
 //should list the apis here
 const COLNotificationAPI = require('./notificationAPI/COLNotifications');
-
+const ChatNotificationAPI = require('./notificationAPI/ChatNotifications');
 
 
 // // Create and Deploy Your First Cloud Functions
@@ -653,10 +653,12 @@ exports.notificationFromCol = functions.https.onRequest((request, response) => {
 //             }
 
 //     })
-
-exports.sendNotification = functions.database
+//exports.sendNotification = functions.database
+exports.sendChatNotifications = functions.database
     .ref('/chats/{chatId}/Messages/{pushId}')
-    .onWrite(event => {
+    .onCreate(event => {
+    //.onWrite(event => {
+      ChatNotificationAPI.sendChatUpdateNotification(event,admin);
         // const message = event.data.val();
         // console.log(message.content)
 
@@ -664,7 +666,7 @@ exports.sendNotification = functions.database
         // var token = functions.database.ref('/users/'+uId +'/tokens/android').val();
 
         // sendMessageToUser(token, message.content);
-
+/*
         const message = event.data.val();
         const senderUid = message.author;
         const promises = [];
@@ -679,6 +681,8 @@ exports.sendNotification = functions.database
         else {
             body = message.content;
         }
+
+
         var userName;
         var db = admin.database();
 
@@ -689,6 +693,7 @@ exports.sendNotification = functions.database
                 shit.once("value", function(userIds) {
 
             userIds.forEach(function (childSnap) {
+
                 if (senderUid == childSnap.key) {
                     console.log('Self notification')
                     return;
@@ -696,7 +701,6 @@ exports.sendNotification = functions.database
 
                 try {
                     var userChatRef = db.ref('/users/' + childSnap.key + '/chats/' + event.params.chatId);
-
                     userChatRef.once("value", function (isInChatSnap) {
                         if (isInChatSnap.val == false) {
                             return;
@@ -711,14 +715,13 @@ exports.sendNotification = functions.database
                                     data: {
                                         toUserName: userName,
                                         chatId: event.params.chatId,
-                                        userId: senderUid,
-                                        type: 25
+                                        userId: senderUid
 
                                     },
                                     notification: {
                                         title: 'New Message from ' + userName,
                                         body: body,
-                                        type: 25
+                                        type: '25'
                                     }
                                 };
                                 console.log(tokenSnap.val());
@@ -733,7 +736,6 @@ exports.sendNotification = functions.database
                                         });
                                 }
 
-
                             })
 
                         }
@@ -742,6 +744,8 @@ exports.sendNotification = functions.database
                 } catch (err) {
                    console.log("Android try catch block", err)
                 }
+
+
                 try {
                     console.log("Are we getting here or what")
                     var userTokens = db.ref('/users/' + childSnap.key + '/tokens/ios');
@@ -752,13 +756,12 @@ exports.sendNotification = functions.database
                             data: {
                                 toUserName: userName,
                                 chatId: event.params.chatId,
-                                userId: senderUid,
-                                type: 25
+                                userId: senderUid
                             },
                             notification: {
                                 title: 'New Message from ' + userName,
                                 body: body,
-                                type: 25
+                                type: '25'
                             }
                         };
 
@@ -782,6 +785,7 @@ exports.sendNotification = functions.database
 
 
             })
+
             }, function(errorObject) {
                 console.log("we really messed up")
             })
@@ -790,8 +794,9 @@ exports.sendNotification = functions.database
         }, function(errorObject) {
             console.log("we really messed up")
         })
-
+*/
     })
+
 
 //triggers notifications to devices
 exports.sendCOLNotification = functions.https.onRequest((request, response) => {

@@ -20,7 +20,12 @@ exports.sendNotification = function(request, response, admin) {
       var db = admin.database();
       var currentNotificationCount = 0;
       var typeName = getNotificationTypeName(type)
-
+      if (typeName == 'errorType'){
+        console.log("Error sendNotification Log: invalid notification type.")
+        response.status(400)
+        response.end("Error sendNotification Log: invalid notification type.")
+        return
+      }
       var logMsg = {}
       logMsg.conID = conId
       logMsg.content = content
@@ -35,9 +40,8 @@ exports.sendNotification = function(request, response, admin) {
         }
 
         const notificaition = Notifier.createNotification(COLNotificationID, data, content, "")
-        Notifier.notifyAllPlatforms(admin,db,conId,notificaition)
+        notifyAllPlatforms(admin,db,conId,notificaition)
         response.end('Notifications sent');
-
         console.log("sendNotification Log:" + String(logMsg))
       })
    }
@@ -51,6 +55,12 @@ exports.resetNotification = function(request, response, admin) {
      var type = request.body.type
      var db = admin.database();
      var typeName = getNotificationTypeName(type)
+     if (typeName == 'errorType'){
+       console.log("Error resetNotification Log: invalid notification type.")
+       response.status(400)
+       response.end("Error resetNotification Log: invalid notification type.")
+       return
+     }
 
      var logMsg = {}
      logMsg.conID = conId
@@ -69,12 +79,18 @@ exports.resetNotification = function(request, response, admin) {
      }
 
      const notificaition = Notifier.createNotification(COLNotificationID, data, content, "")
-     Notifier.notifyAllPlatforms(admin,db,conId,notificaition)
+     notifyAllPlatforms(admin,db,conId,notificaition)
      response.end('Notifications cleared');
      console.log("resetNotification Log:" + String(logMsg))
 }
 
+function notifyAllPlatforms (admin,db,conId,payload){
+    var tokens = [];
+    tokens.push(db.ref('/users/' + conId + '/tokens/android'));
+    tokens.push(db.ref('/users/' + conId + '/tokens/ios'));
+    Notifier.notifyDevices(admin,tokens,payload);
 
+}
 
 // use type id to map to notication type string
 //type id must be an int. should prob add conversion to force the type.
