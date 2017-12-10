@@ -1,7 +1,7 @@
 'use strict';
 
 const https = require('https');
-const Notifier = require('./notifier');
+const Notifier = require('./Notifier');
 
 
 //this is the field to id if the notification is chat notificy or COL

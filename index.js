@@ -11,6 +11,7 @@ admin.initializeApp(functions.config().firebase);
 //should list the apis here
 const COLNotificationAPI = require('./notificationAPI/COLNotifications');
 const ChatNotificationAPI = require('./notificationAPI/ChatNotifications');
+const TimeSheetAPI = require('./timeTrackingAPI/TimeSheetAPI');
 
 
 // // Create and Deploy Your First Cloud Functions
@@ -28,7 +29,6 @@ exports.clockIn = functions.https.onRequest((request, response) => {
     var firestore = admin.firestore();
 
     firestore.collection("users/" + conId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
-
         console.log(shiftCollection)
         console.log(shiftCollection.size)
 
@@ -664,7 +664,6 @@ exports.sendChatNotifications = functions.database
     ChatNotificationAPI.sendChatUpdateNotification(event,admin);
 })
 
-
 //triggers notifications to devices
 exports.sendCOLNotification = functions.https.onRequest((request, response) => {
   if (request.method != "POST") {
@@ -680,4 +679,16 @@ exports.clearCOLNotification = functions.https.onRequest((request, response) => 
      return;
    }
   COLNotificationAPI.resetNotification(request, response, admin);
+});
+
+exports.clockInShift = functions.https.onRequest((request, response) => {
+  if (request.method != "POST") {
+     respond.status(400).send("Invalid Request Method: requires POST");
+     return;
+   }
+   if (request.body.conId == null) {
+     respond.status(400).send("Invalid Request Body: requires COL ID {conId}");
+     return;
+   }
+   TimeSheetAPI.clockIn(request, response,admin);
 });
