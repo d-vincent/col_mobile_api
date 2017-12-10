@@ -12,43 +12,28 @@ exports.createNotification = function(typeID, data, title, body) {
      return payload;
  }
 
-exports.notifyAllPlatforms = function(admin,db,conId,payload){
-    notifyAndroid(admin,db,conId,payload)
-    notifyIOS(admin,db,conId,payload);
+ exports.notifyDevices = function(admin,deviceTokens,payload){
+   if (deviceTokens == null){
+      console.log("Error notifying devices message: device tokens is null");
+   }else{
+     notify(admin,deviceTokens,payload)
+   }
+ }
 
+function notify(admin,deviceTokens,payload){
+  if (deviceTokens.constructor === Array) {
+    console.log("notifying devices")
+    deviceTokens.forEach(function(token) {
+      notifyDevice(admin,token,payload)
+    });
+  }else{
+    console.log("notifying single device")
+    notifyDevice(admin,deviceTokens,payload)
+  }
 }
 
- exports.notifyIOS = function(admin,db,conId,payload){
-   notifyIOS(admin,db,conId,payload);
- }
-
- exports.notifyAndroid = function(admin,db,conId, payload){
-   notifyAndroid(admin,db,conId,payload)
- }
-
-
- function notifyAndroid(admin,db,conId, payload){
-   var androidToken = db.ref('/users/' + conId + '/tokens/android');
-   androidToken.once("value", function (snapshot) {
-       try {
-           admin.messaging().sendToDevice(snapshot.val(), payload)
-               .then(function (response) {
-                   console.log("Successfully sent message:", response);
-               })
-               .catch(function (error) {
-                   console.log("Error sending message:", error);
-               });
-       } catch (err) {
-           console.log("Probably a null token, fam")
-           console.log(err)
-       }
-
-   })
- }
-
- function notifyIOS(admin,db,conId,payload){
-   var iosToken = db.ref('/users/' + conId + '/tokens/ios');
-   iosToken.once("value", function (snapshot) {
+ function notifyDevice(admin,deviceToken,payload){
+   deviceToken.once("value", function (snapshot) {
        try {
            admin.messaging().sendToDevice(snapshot.val(), payload)
                .then(function (response) {
