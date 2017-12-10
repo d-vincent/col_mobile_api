@@ -1,3 +1,6 @@
+
+'use strict';
+
 var functions = require('firebase-functions');
 const https = require('https');
 let admin = require('firebase-admin');
@@ -5,6 +8,9 @@ let FieldValue = require("firebase-admin").FieldValue;
 
 admin.initializeApp(functions.config().firebase);
 
+//should list the apis here
+const COLNotificationAPI = require('./notificationAPI/COLNotifications');
+const ChatNotificationAPI = require('./notificationAPI/ChatNotifications');
 
 
 // // Create and Deploy Your First Cloud Functions
@@ -14,7 +20,7 @@ exports.helloWorld = functions.https.onRequest((request, response) => {
     response.send("Hello from Firebase!");
 });
 
-exports.clockIn = functions.https.onRequest((request, response) => { 
+exports.clockIn = functions.https.onRequest((request, response) => {
 
     var conId = request.query.conId
     var location = request.query.location
@@ -22,7 +28,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
     var firestore = admin.firestore();
 
     firestore.collection("users/" + conId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
-        
+
         console.log(shiftCollection)
         console.log(shiftCollection.size)
 
@@ -50,22 +56,19 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                 response.end("Successful clock in");
             })
         }
-
-        
-        
-
     })
 
 
 })
 
-exports.clockOut = functions.https.onRequest((request, response) => { 
+exports.clockOut = functions.https.onRequest((request, response) => {
 
     var firestore = admin.firestore();
     var contactId = request.query.conId
     var location = request.query.location
 
-    firestore.collection("users/" + contactId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) { 
+
+    firestore.collection("users/" + contactId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
         if (shiftCollection.size != 0) {
 
             shiftCollection.forEach(function (latestShiftDoc) {
@@ -182,8 +185,7 @@ exports.clockOut = functions.https.onRequest((request, response) => {
                 }
             })
 
-
-        } else { 
+        } else {
             response.status(201)
             response.end("There is no open shift")
         }
@@ -205,9 +207,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
     var firestore = admin.firestore();
 
     firestore.collection("users/" + contactId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
-        
         if (shiftCollection.size != 0){
-        
             shiftCollection.forEach(function (latestShiftDoc) {
                 if (latestShiftDoc.data().endTime != null) {
                     response.status(400)
@@ -218,7 +218,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobCollection) {
 
                         if (jobCollection.size != 0) {
-                            
+
                             jobCollection.forEach(function (latestJobDoc) {
                                 if (latestJobDoc.exists && latestJobDoc.data().endTime == null) {
                                     response.status(400)
@@ -230,7 +230,8 @@ exports.startJob = functions.https.onRequest((request, response) => {
                                             if (latestBreak.data().endTime == null) {
                                                 response.status(400)
                                                 response.end("User is on break. Please end The break before starting a job")
-                                            } else { 
+
+                                            } else {
 
                                                 firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
                                                     startTime: admin.firestore.FieldValue.serverTimestamp(),
@@ -241,10 +242,10 @@ exports.startJob = functions.https.onRequest((request, response) => {
                                             }
                                         })
                                     })
-                                    
+
+
                                 }
                             })
-                           
                         } else {
                             firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
                                 breakCollection.forEach(function (latestBreak) {
@@ -264,7 +265,6 @@ exports.startJob = functions.https.onRequest((request, response) => {
                             })
                         }
 
-                        
                     })
                 }
             })
@@ -294,8 +294,6 @@ exports.endJob = functions.https.onRequest((request, response) => {
                         response.end("There is no open shift")
                     } else {
 
-                        
-
 
                         firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime").limit(1).get().then(function (jobCollection) {
                                 if (jobCollection.size != 0) {
@@ -312,7 +310,7 @@ exports.endJob = functions.https.onRequest((request, response) => {
 
                                                         response.status(201)
                                                         response.end("user is on break,  please end before ending the job")
-                                                        
+
                                                         // var latestBreakRef = firestore.doc("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks/" + latestBreakDoc.id)
                                                         // latestBreakRef.update({
                                                         //     endTime: admin.firestore.FieldValue.serverTimestamp()
@@ -373,7 +371,6 @@ exports.endJob = functions.https.onRequest((request, response) => {
                                     response.end("There is no open job")
                                 }
                             })
- 
                     }
                 })
             } else {
@@ -381,9 +378,6 @@ exports.endJob = functions.https.onRequest((request, response) => {
                 response.end("There is no open shift")
             }
         })
-    
-
-    
 
 })
 
@@ -416,7 +410,6 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                         if (jobCollection.exists) {
                                             var jobId
                                             jobCollection.forEach(function (latestJobDoc) {
-                                                
                                                 if (latestJobDoc.exists && latestJobDoc.data().endTime == null) {
                                                     jobId = latestJobDoc.id
                                                 }
@@ -455,11 +448,12 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                     })
                                 }
 
-                                if (jobId == null) { 
+
+                                if (jobId == null) {
 
                                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").add({
                                         startTime: admin.firestore.FieldValue.serverTimestamp()
-                                        
+
                                     }).then(function () {
                                         response.end("BreakStart");
                                     })
@@ -472,19 +466,19 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                     })
                                 }
 
-                                
+
+
                             })
                         }
 
-                        
+
                     })
                 }
             })
-        } else { 
+        } else {
             response.status(400)
             response.end("There is no open shift")
         }
-        
     })
 
 })
@@ -521,12 +515,12 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                         endTime: admin.firestore.FieldValue.serverTimestamp()
                                     }).then(function () {
                                         firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (updatedBreakCollection) {
-                                            
+
                                             updatedBreakCollection.forEach(function (updatedBreak) {
                                                 var breakData = updatedBreak.data()
                                                 var breakDuration = (breakData.endTime - breakData.startTime)
 
-                                                
+
                                                 latestBreakRef.update({
                                                     duration: breakDuration
                                                 }).then(function () {
@@ -534,7 +528,6 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                 })
                                             })
 
-                                            
                                         })
                                     })
                                 }
@@ -544,21 +537,22 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                             response.end()
                         }
 
-                        
+
                     })
                 }
             })
-        } else { 
+        } else {
             response.sendError( "There is not an open timesheet");
             response.end()
         }
-        
     })
 
 
 })
 
-exports.notificationFromCol = functions.https.onRequest((request, response) => { 
+
+exports.notificationFromCol = functions.https.onRequest((request, response) => {
+
 
     var conId = request.query.conId
     var content = request.query.content
@@ -571,20 +565,21 @@ exports.notificationFromCol = functions.https.onRequest((request, response) => {
     console.log(content)
     console.log(type)
 
-   
     var iOSToken = db.ref('/users/' + conId + '/tokens/ios');
 
 
     db.ref('/users/' + conId + '/notifications/' + type).push().set(itemId)
 
-    // db.ref('/users/' + conId + '/notifications/' + type).once("value", function (snapshot) { 
+
+    // db.ref('/users/' + conId + '/notifications/' + type).once("value", function (snapshot) {
 
     //     if (snapshot.exists) {
     //         var currentnumber = snapshot.val();
     //         currentnumber++;
     //         db.ref('/users/' + conId + '/notifications/' + type).set(currentnumber);
     //     }
-    //     else { 
+
+    //     else {
     //         db.ref('/users/' + conId + '/notifications/' + type).set(1);
     //     }
 
@@ -638,7 +633,6 @@ exports.notificationFromCol = functions.https.onRequest((request, response) => {
         }
 
     })
-    
     response.end('Notifications sent');
 
 })
@@ -654,15 +648,17 @@ exports.notificationFromCol = functions.https.onRequest((request, response) => {
 //                 event.data.ref.child('fireOnWrite').set(true);
 //                 event.data.ref.child('lastTimestamp').set(millis);
 //             }
-//             else { 
+//             else {
 //                 return;
 //             }
-            
-//     })
 
-exports.sendNotification = functions.database
+//     })
+//exports.sendNotification = functions.database
+exports.sendChatNotifications = functions.database
     .ref('/chats/{chatId}/Messages/{pushId}')
-    .onWrite(event => {
+    .onCreate(event => {
+    //.onWrite(event => {
+      ChatNotificationAPI.sendChatUpdateNotification(event,admin);
         // const message = event.data.val();
         // console.log(message.content)
 
@@ -670,7 +666,7 @@ exports.sendNotification = functions.database
         // var token = functions.database.ref('/users/'+uId +'/tokens/android').val();
 
         // sendMessageToUser(token, message.content);
-
+/*
         const message = event.data.val();
         const senderUid = message.author;
         const promises = [];
@@ -682,11 +678,11 @@ exports.sendNotification = functions.database
         } else if (type == "2") {
             body = "Video Message"
         }
-        else { 
+        else {
             body = message.content;
         }
 
-        
+
         var userName;
         var db = admin.database();
 
@@ -697,7 +693,7 @@ exports.sendNotification = functions.database
                 shit.once("value", function(userIds) {
 
             userIds.forEach(function (childSnap) {
-                
+
                 if (senderUid == childSnap.key) {
                     console.log('Self notification')
                     return;
@@ -705,11 +701,11 @@ exports.sendNotification = functions.database
 
                 try {
                     var userChatRef = db.ref('/users/' + childSnap.key + '/chats/' + event.params.chatId);
-                    userChatRef.once("value", function (isInChatSnap) { 
+                    userChatRef.once("value", function (isInChatSnap) {
                         if (isInChatSnap.val == false) {
                             return;
-                            
-                        } else { 
+
+                        } else {
 
                             var userTokens = db.ref('/users/' + childSnap.key + '/tokens/android');
                             userTokens.once("value", function (tokenSnap) {
@@ -719,14 +715,13 @@ exports.sendNotification = functions.database
                                     data: {
                                         toUserName: userName,
                                         chatId: event.params.chatId,
-                                        userId: senderUid,
-                                        type: 25
+                                        userId: senderUid
 
                                     },
                                     notification: {
                                         title: 'New Message from ' + userName,
                                         body: body,
-                                        type: 25
+                                        type: '25'
                                     }
                                 };
                                 console.log(tokenSnap.val());
@@ -741,16 +736,16 @@ exports.sendNotification = functions.database
                                         });
                                 }
 
-                            })                            
+                            })
 
                         }
                     })
-                    
-                } catch (err) { 
-                   console.log("Android try catch block", err)
-                }    
 
-                
+                } catch (err) {
+                   console.log("Android try catch block", err)
+                }
+
+
                 try {
                     console.log("Are we getting here or what")
                     var userTokens = db.ref('/users/' + childSnap.key + '/tokens/ios');
@@ -761,17 +756,16 @@ exports.sendNotification = functions.database
                             data: {
                                 toUserName: userName,
                                 chatId: event.params.chatId,
-                                userId: senderUid,
-                                type: 25
+                                userId: senderUid
                             },
                             notification: {
                                 title: 'New Message from ' + userName,
                                 body: body,
-                                type: 25
+                                type: '25'
                             }
                         };
 
-                        console.log(tokenSnap.val());                        
+                        console.log(tokenSnap.val());
                         if (tokenSnap.val() != null) {
 
                             admin.messaging().sendToDevice(tokenSnap.val(), payload)
@@ -785,13 +779,13 @@ exports.sendNotification = functions.database
 
                     })
 
-                } catch (err) { 
+                } catch (err) {
                     console.log("ios try catch block", err)
-                }    
+                }
 
 
             })
-                   
+
             }, function(errorObject) {
                 console.log("we really messed up")
             })
@@ -800,20 +794,23 @@ exports.sendNotification = functions.database
         }, function(errorObject) {
             console.log("we really messed up")
         })
-
+*/
     })
 
 
-function createNotification(typeID, data, title, body) {
-    const payload = {
-        data: data,
-        notification: {
-            title: title,
-            body: body,
-            type: typeID
-        }
-    }
-
-    return payload;
-}
-
+//triggers notifications to devices
+exports.sendCOLNotification = functions.https.onRequest((request, response) => {
+  if (request.method != "POST") {
+     respond.status(400).send("Invalid Request Method: requires POST");
+     return;
+   }
+  COLNotificationAPI.sendNotification(request, response, admin);
+});
+//resets the particular col thing (rfi, messaging, etc) to 0
+exports.clearCOLNotification = functions.https.onRequest((request, response) => {
+  if (request.method != "POST") {
+     respond.status(400).send("Invalid Request Method: requires POST");
+     return;
+   }
+  COLNotificationAPI.resetNotification(request, response, admin);
+});
