@@ -88,7 +88,7 @@ exports.clockOut = functions.https.onRequest((request, response) => {
                                     response.end("User is on break")
                                 } else {
 
-                                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
+                                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
                                         if (jobsCollection.size != 0) {
 
                                             jobsCollection.forEach(function (latestJobDoc) {
@@ -97,20 +97,21 @@ exports.clockOut = functions.https.onRequest((request, response) => {
                                                     response.end("User is on job")
                                                 } else {
 
-                                                    performClockOut(latestShiftRef, location, contactId)
+                                                    performClockOut(latestShiftRef, location, contactId, response)
                                                 }
                                             })
 
                                         } else {
-                                            performClockOut(latestShiftRef, location, contactId)
+                                            performClockOut(latestShiftRef, location, contactId, response)
                                         }
                                     })
                                 }
                             })
                         } else {
-                            firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
+                            firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
                                 if (jobsCollection.size != 0) {
 
+                                    console.log("found a job")
                                     jobsCollection.forEach(function (latestJobDoc) {
                                         if (latestJobDoc.data().endTime == null) {
                                             response.status(201)
@@ -139,7 +140,7 @@ exports.clockOut = functions.https.onRequest((request, response) => {
 
 function performClockOut(latestShiftRef, location, contactId, response) {
 
-    firestore = admin.firestore()
+    var firestore = admin.firestore()
     latestShiftRef.update({
         endTime: admin.firestore.FieldValue.serverTimestamp(),
         endLocation: location
@@ -214,42 +215,64 @@ exports.startJob = functions.https.onRequest((request, response) => {
                                 } else {
 
                                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
-                                        breakCollection.forEach(function (latestBreak) {
-                                            if (latestBreak.data().endTime == null) {
-                                                response.status(400)
-                                                response.end("User is on break. Please end The break before starting a job")
 
-                                            } else {
+                                        if (breakCollection.size != 0){
+                                            breakCollection.forEach(function (latestBreak) {
+                                                if (latestBreak.data().endTime == null) {
+                                                    response.status(400)
+                                                    response.end("User is on break. Please end The break before starting a job")
 
-                                                firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
-                                                    startTime: admin.firestore.FieldValue.serverTimestamp(),
-                                                    projectId: projId
-                                                }).then(function () {
-                                                    response.end("Successful Job Start");
-                                                })
-                                            }
-                                        })
+                                                } else {
+
+                                                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
+                                                        startTime: admin.firestore.FieldValue.serverTimestamp(),
+                                                        projectId: projId
+                                                    }).then(function () {
+                                                        response.end("Successful Job Start");
+                                                    })
+                                                }
+                                            })
+                                        } else {
+                                            firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
+                                                startTime: admin.firestore.FieldValue.serverTimestamp(),
+                                                projectId: projId
+                                            }).then(function () {
+                                                response.end("Successful Job Start");
+                                            })
+                                        }
                                     })
 
 
                                 }
                             })
                         } else {
+                            console.log("no job collection")
                             firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
-                                breakCollection.forEach(function (latestBreak) {
-                                    if (latestBreak.data().endTime == null) {
-                                        response.status(400)
-                                        response.end("User is on break. Please end The break before starting a job")
-                                    } else {
+                                if (breakCollection.size != 0) {
+                                    breakCollection.forEach(function (latestBreak) {
+                                        if (latestBreak.data().endTime == null) {
+                                            response.status(400)
+                                            response.end("User is on break. Please end The break before starting a job")
 
-                                        firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
-                                            startTime: admin.firestore.FieldValue.serverTimestamp(),
-                                            projectId: projId
-                                        }).then(function () {
-                                            response.end("Successful Job Start");
-                                        })
-                                    }
-                                })
+                                        } else {
+
+                                            firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
+                                                startTime: admin.firestore.FieldValue.serverTimestamp(),
+                                                projectId: projId
+                                            }).then(function () {
+                                                response.end("Successful Job Start");
+                                            })
+                                        }
+                                    })
+                                } else {
+                                    console.log("no break collection")
+                                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
+                                        startTime: admin.firestore.FieldValue.serverTimestamp(),
+                                        projectId: projId
+                                    }).then(function () {
+                                        response.end("Successful Job Start");
+                                    })
+                                }
                             })
                         }
 
@@ -304,11 +327,13 @@ exports.endJob = functions.https.onRequest((request, response) => {
                                                     response.end("user is on break,  please end before ending the job")
 
                                                 } else {
-                                                    performJobEnd(latestJobRef, contactId, response)
+                                                    
+                                                    performJobEnd(latestJobRef,latestShiftDoc, contactId, response)
                                                 }
                                             })
                                         } else {
-                                            performJobEnd(latestJobRef, contactId, response)
+                                            console.log(latestShiftDoc.id)
+                                            performJobEnd(latestJobRef, latestShiftDoc, contactId, response)
                                         }
                                     })
                                 }
@@ -333,14 +358,15 @@ exports.endJob = functions.https.onRequest((request, response) => {
 
 })
 
-function performJobEnd(latestJobRef, contactId, response) {
-    firestore = admin.firestore()
+function performJobEnd(latestJobRef, latestShiftDoc, contactId, response) {
+    var firestore = admin.firestore()
 
     latestJobRef.update({
 
         endTime: admin.firestore.FieldValue.serverTimestamp()
     }).then(function () {
-        firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").where("jobId", "==", latestJobDoc.id).get().then(function (breakCollection) {
+        console.log(latestShiftDoc.id)
+        firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").where("jobId", "==", latestJobRef.id).get().then(function (breakCollection) {
             var totalBreakDuration = 0
             if (breakCollection.size != 0) {
                 breakCollection.forEach(function (breakForJob) {
