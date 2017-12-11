@@ -11,6 +11,7 @@ admin.initializeApp(functions.config().firebase);
 //should list the apis here
 const COLNotificationAPI = require('./notificationAPI/COLNotifications');
 const ChatNotificationAPI = require('./notificationAPI/ChatNotifications');
+const TimeSheetAPI = require('./timeTrackingAPI/TimeSheetAPI');
 
 
 // // Create and Deploy Your First Cloud Functions
@@ -28,7 +29,6 @@ exports.clockIn = functions.https.onRequest((request, response) => {
     var firestore = admin.firestore();
 
     firestore.collection("users/" + conId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
-
         console.log(shiftCollection)
         console.log(shiftCollection.size)
 
@@ -653,150 +653,16 @@ exports.notificationFromCol = functions.https.onRequest((request, response) => {
 //             }
 
 //     })
-//exports.sendNotification = functions.database
+
+
+//triggers eachtime a new message is created
+//sends  notificaiton to all user involved
 exports.sendChatNotifications = functions.database
     .ref('/chats/{chatId}/Messages/{pushId}')
     .onCreate(event => {
     //.onWrite(event => {
-      ChatNotificationAPI.sendChatUpdateNotification(event,admin);
-        // const message = event.data.val();
-        // console.log(message.content)
-
-        // var uId = event.params.userId
-        // var token = functions.database.ref('/users/'+uId +'/tokens/android').val();
-
-        // sendMessageToUser(token, message.content);
-/*
-        const message = event.data.val();
-        const senderUid = message.author;
-        const promises = [];
-        const type = message.type;
-
-        var body;
-        if (type == "1") {
-            body = "Photo Message"
-        } else if (type == "2") {
-            body = "Video Message"
-        }
-        else {
-            body = message.content;
-        }
-
-
-        var userName;
-        var db = admin.database();
-
-            var gettingUsername = db.ref('chats/' + event.params.chatId + '/members/' + senderUid + '/username/');
-            gettingUsername.once("value", function(snapshot) {
-
-                var shit = db.ref('/chats/' + event.params.chatId + '/members');
-                shit.once("value", function(userIds) {
-
-            userIds.forEach(function (childSnap) {
-
-                if (senderUid == childSnap.key) {
-                    console.log('Self notification')
-                    return;
-                }
-
-                try {
-                    var userChatRef = db.ref('/users/' + childSnap.key + '/chats/' + event.params.chatId);
-                    userChatRef.once("value", function (isInChatSnap) {
-                        if (isInChatSnap.val == false) {
-                            return;
-
-                        } else {
-
-                            var userTokens = db.ref('/users/' + childSnap.key + '/tokens/android');
-                            userTokens.once("value", function (tokenSnap) {
-
-                                userName = snapshot.val();
-                                const payload = {
-                                    data: {
-                                        toUserName: userName,
-                                        chatId: event.params.chatId,
-                                        userId: senderUid
-
-                                    },
-                                    notification: {
-                                        title: 'New Message from ' + userName,
-                                        body: body,
-                                        type: '25'
-                                    }
-                                };
-                                console.log(tokenSnap.val());
-                                if (tokenSnap.val() != null) {
-
-                                    admin.messaging().sendToDevice(tokenSnap.val(), payload)
-                                        .then(function (response) {
-                                            console.log("Successfully sent message:", response);
-                                        })
-                                        .catch(function (error) {
-                                            console.log("Error sending message:", error);
-                                        });
-                                }
-
-                            })
-
-                        }
-                    })
-
-                } catch (err) {
-                   console.log("Android try catch block", err)
-                }
-
-
-                try {
-                    console.log("Are we getting here or what")
-                    var userTokens = db.ref('/users/' + childSnap.key + '/tokens/ios');
-                    userTokens.once("value", function (tokenSnap) {
-
-                        userName = snapshot.val();
-                        const payload = {
-                            data: {
-                                toUserName: userName,
-                                chatId: event.params.chatId,
-                                userId: senderUid
-                            },
-                            notification: {
-                                title: 'New Message from ' + userName,
-                                body: body,
-                                type: '25'
-                            }
-                        };
-
-                        console.log(tokenSnap.val());
-                        if (tokenSnap.val() != null) {
-
-                            admin.messaging().sendToDevice(tokenSnap.val(), payload)
-                                .then(function (response) {
-                                    console.log("Successfully sent message:", response);
-                                })
-                                .catch(function (error) {
-                                    console.log("Error sending message:", error);
-                                });
-                        }
-
-                    })
-
-                } catch (err) {
-                    console.log("ios try catch block", err)
-                }
-
-
-            })
-
-            }, function(errorObject) {
-                console.log("we really messed up")
-            })
-
-
-        }, function(errorObject) {
-            console.log("we really messed up")
-        })
-*/
-    })
-
+    ChatNotificationAPI.sendChatUpdateNotification(event,admin);
+})
 
 //triggers notifications to devices
 exports.sendCOLNotification = functions.https.onRequest((request, response) => {
@@ -813,4 +679,16 @@ exports.clearCOLNotification = functions.https.onRequest((request, response) => 
      return;
    }
   COLNotificationAPI.resetNotification(request, response, admin);
+});
+
+exports.clockInShift = functions.https.onRequest((request, response) => {
+  if (request.method != "POST") {
+     respond.status(400).send("Invalid Request Method: requires POST");
+     return;
+   }
+   if (request.body.conId == null) {
+     respond.status(400).send("Invalid Request Body: requires COL ID {conId}");
+     return;
+   }
+   TimeSheetAPI.clockIn(request, response,admin);
 });
