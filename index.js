@@ -37,7 +37,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
             shiftCollection.forEach(function (shiftWithNewestStartDate) {
                 console.log(shiftWithNewestStartDate.data().endTime)
                 if (shiftWithNewestStartDate.data().endTime == null) {
-                    response.status(400)
+                    response.status(201)
                     response.end("There is already an open shift")
                 } else {
                     firestore.collection("users/" + conId + "/shift").add({
@@ -166,10 +166,26 @@ function performClockOut(latestShiftRef, location, contactId, response) {
                             generalDuration -= shiftJobDoc.data().duration
                         })
 
+                        var seconds = duration / 1000
+                        var minutes = seconds / 60
+                        var hours = minutes / 60
+                        hours = hours.toFixed(2)
+
+                        
+
+                        var generalSeconds = generalDuration / 1000
+                        var generalMinutes = generalSeconds / 60
+                        var generalHours = generalMinutes / 60
+                        generalHours = generalHours.toFixed(2)
+
+
+
 
                         latestShiftRef.update({
                             duration: duration,
-                            generalDuration: generalDuration
+                            generalDuration: generalDuration,
+                            hours: hours,
+                            generalHours, generalHours
                         }).then(function () {
                             response.status(200)
                             response.end("Clocked out")
@@ -199,7 +215,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
         if (shiftCollection.size != 0){
             shiftCollection.forEach(function (latestShiftDoc) {
                 if (latestShiftDoc.data().endTime != null) {
-                    response.status(400)
+                    response.status(201)
                     response.end("There is no open shift")
                 } else {
 
@@ -210,7 +226,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
 
                             jobCollection.forEach(function (latestJobDoc) {
                                 if (latestJobDoc.exists && latestJobDoc.data().endTime == null) {
-                                    response.status(400)
+                                    response.status(201)
                                     response.end("There is already an open job")
                                 } else {
 
@@ -219,7 +235,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
                                         if (breakCollection.size != 0){
                                             breakCollection.forEach(function (latestBreak) {
                                                 if (latestBreak.data().endTime == null) {
-                                                    response.status(400)
+                                                    response.status(201)
                                                     response.end("User is on break. Please end The break before starting a job")
 
                                                 } else {
@@ -251,7 +267,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
                                 if (breakCollection.size != 0) {
                                     breakCollection.forEach(function (latestBreak) {
                                         if (latestBreak.data().endTime == null) {
-                                            response.status(400)
+                                            response.status(201)
                                             response.end("User is on break. Please end The break before starting a job")
 
                                         } else {
@@ -280,7 +296,7 @@ exports.startJob = functions.https.onRequest((request, response) => {
                 }
             })
         } else {
-            response.status(400)
+            response.status(201)
             response.end("There is no open shift")
         }
 
@@ -308,7 +324,7 @@ exports.endJob = functions.https.onRequest((request, response) => {
 
 
 
-                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime").limit(1).get().then(function (jobCollection) {
+                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobCollection) {
                         if (jobCollection.size != 0) {
                             jobCollection.forEach(function (latestJobDoc) {
                                 if (latestJobDoc.data().endTime != null) {
@@ -317,7 +333,7 @@ exports.endJob = functions.https.onRequest((request, response) => {
                                 } else {
 
                                     var latestJobRef = firestore.doc("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/" + latestJobDoc.id)
-                                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime").limit(1).get().then(function (breakCollection) {
+                                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime" , "desc").limit(1).get().then(function (breakCollection) {
 
                                         if (breakCollection.size != 0) {
                                             breakCollection.forEach(function (latestBreakDoc) {
@@ -373,21 +389,34 @@ function performJobEnd(latestJobRef, latestShiftDoc, contactId, response) {
                     totalBreakDuration += (breakForJob.data().endTime - breakForJob.data().startTime)
                 })
             }
-            firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime").limit(1).get().then(function (jobCollection) {
+            firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobCollection) {
                 jobCollection.forEach(function (updatedJob) {
                     var duration = updatedJob.data().endTime - updatedJob.data().startTime
                     duration -= totalBreakDuration
 
+                   
+
+                    var seconds = duration / 1000
+                    console.log(seconds)
+                    var minutes = seconds / 60
+                    console.log(minutes)
+                    var hours = minutes / 60
+                    hours = hours.toFixed(2)
+
+                    console.log(hours)
+
+
+
                     var updatedJobRef = firestore.doc("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/" + updatedJob.id)
                     updatedJobRef.update({
-                        duration: duration
+                        duration: duration,
+                        hours: hours
                     }).then(function () {
                         response.status(200)
                         response.end("Ended job")
                     })
                 })
             })
-
 
         })
     })
@@ -407,9 +436,8 @@ exports.startBreak = functions.https.onRequest((request, response) => {
     firestore.collection("users/" + contactId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
         if (shiftCollection.size != 0) {
             shiftCollection.forEach(function (latestShiftDoc) {
-                console.log(latestShiftDoc.id)
                 if (latestShiftDoc.data().endTime != null) {
-                    response.status(400)
+                    response.status(201)
                     response.end("There is no open shift")
                 } else {
                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
@@ -417,20 +445,22 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                         if (breakCollection.size != 0) {
                             breakCollection.forEach(function (latestBreakDoc) {
                                 if (latestBreakDoc.exists && latestBreakDoc.data().endTime == null) {
-                                    response.status(400)
+                                    response.status(201)
                                     response.end("There is already an open break")
                                 } else {
                                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobCollection) {
 
-                                        if (jobCollection.exists) {
-                                            var jobId
+                                        var jobId
+                                       
                                             jobCollection.forEach(function (latestJobDoc) {
                                                 if (latestJobDoc.exists && latestJobDoc.data().endTime == null) {
                                                     jobId = latestJobDoc.id
+                                                    console.log(jobId)
                                                 }
                                             })
-                                        }
+                                        
 
+                                        console.log(jobId)
                                         if (jobId == null) {
 
                                             firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").add({
@@ -453,17 +483,20 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                         } else {
                             firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobCollection) {
 
-                                if (jobCollection.size != 0) {
-                                    var jobId
+                                var jobId
+
+                                    
                                     jobCollection.forEach(function (latestJobDoc) {
 
                                         if (latestJobDoc.exists && latestJobDoc.data().endTime == null) {
                                             jobId = latestJobDoc.id
+                                            console.log(jobId)
                                         }
                                     })
-                                }
+                                
 
 
+                                console.log(jobId)
                                 if (jobId == null) {
 
                                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").add({
@@ -491,7 +524,7 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                 }
             })
         } else {
-            response.status(400)
+            response.status(201)
             response.end("There is no open shift")
         }
     })
@@ -511,7 +544,7 @@ exports.endBreak = functions.https.onRequest((request, response) => {
         if (shiftCollection.size != 0) {
             shiftCollection.forEach(function (latestShiftDoc) {
                 if (latestShiftDoc.exists && latestShiftDoc.data().endTime != null) {
-                    response.status(400)
+                    response.status(201)
                     response.end("There is no open shift")
                 } else {
                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
@@ -520,7 +553,7 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                             breakCollection.forEach(function (latestBreakDoc) {
                                 if (!latestBreakDoc.exists || latestBreakDoc.data().endTime != null) {
                                     //response.sendError("There is not an open break");
-                                    response.status(400)
+                                    response.status(201)
                                     response.end("There is not an open break")
                                 } else {
 
@@ -535,9 +568,14 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                 var breakData = updatedBreak.data()
                                                 var breakDuration = (breakData.endTime - breakData.startTime)
 
+                                                var seconds = breakDuration / 1000
+                                                var minutes = seconds / 60
+                                                var hours = minutes / 60
+                                                hours = hours.toFixed(2)
 
                                                 latestBreakRef.update({
-                                                    duration: breakDuration
+                                                    duration: breakDuration,
+                                                    hours: hours
                                                 }).then(function () {
                                                     response.end("Successful break end");
                                                 })
@@ -548,8 +586,8 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                 }
                             })
                         } else {
-                            response.sendError( "There is not an open break");
-                            response.end()
+                            response.status(201)
+                            response.end("There is no open break")
                         }
 
 
@@ -557,8 +595,8 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                 }
             })
         } else {
-            response.sendError( "There is not an open timesheet");
-            response.end()
+            response.status(201)
+            response.end("There is no open shift")
         }
     })
 
