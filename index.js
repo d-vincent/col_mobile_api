@@ -607,10 +607,10 @@ exports.endBreak = functions.https.onRequest((request, response) => {
 exports.notificationFromCol = functions.https.onRequest((request, response) => {
 
 
-    var conId = request.query.conId
-    var content = request.query.content
-    var type = request.query.type
-    var itemId = request.query.itemId
+    var conId = request.body.conId
+    var content = request.body.content
+    var type = request.body.type
+    var itemId = request.body.itemId
 
     var db = admin.database();
 
