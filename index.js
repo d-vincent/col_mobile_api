@@ -58,7 +58,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
         }
     })
 
-
+    
 })
 
 exports.clockOut = functions.https.onRequest((request, response) => {
@@ -720,7 +720,7 @@ exports.sendChatNotifications = functions.database
 //triggers notifications to devices
 exports.sendCOLNotification = functions.https.onRequest((request, response) => {
   if (request.method != "POST") {
-     respond.status(400).send("Invalid Request Method: requires POST");
+     response.status(400).send("Invalid Request Method: requires POST");
      return;
    }
   COLNotificationAPI.sendNotification(request, response, admin);
@@ -728,7 +728,7 @@ exports.sendCOLNotification = functions.https.onRequest((request, response) => {
 //resets the particular col thing (rfi, messaging, etc) to 0
 exports.clearCOLNotification = functions.https.onRequest((request, response) => {
   if (request.method != "POST") {
-     respond.status(400).send("Invalid Request Method: requires POST");
+      response.status(400).send("Invalid Request Method: requires POST");
      return;
    }
   COLNotificationAPI.resetNotification(request, response, admin);
@@ -736,11 +736,11 @@ exports.clearCOLNotification = functions.https.onRequest((request, response) => 
 
 exports.clockInShift = functions.https.onRequest((request, response) => {
   if (request.method != "POST") {
-     respond.status(400).send("Invalid Request Method: requires POST");
+      response.status(400).send("Invalid Request Method: requires POST");
      return;
    }
    if (request.body.conId == null) {
-     respond.status(400).send("Invalid Request Body: requires COL ID {conId}");
+       response.status(400).send("Invalid Request Body: requires COL ID {conId}");
      return;
    }
    TimeSheetAPI.clockIn(request, response,admin);

@@ -16,18 +16,20 @@ exports.sendNotification = function(request, response, admin) {
       var content = request.body.content
       var type = request.body.type
       var itemId = request.body.itemId
+      var title = request.body.title
+    
       var db = admin.database();
-      var logMsg = {}
+    var logMsg = {}
       logMsg.conID = conId
       logMsg.content = content
       logMsg.type = type
       logMsg.itemId = itemId
       db.ref('/users/' + conId + '/notifications/' + type).push().set(itemId);
       var data = {
-          notificationContent: content,
+          notificationContent: title,
           notificationType: String(type)
       }
-      const notificaition = Notifier.createNotification(COLNotificationID, data, content, "")
+      const notificaition = Notifier.createNotification(COLNotificationID, data, title, content)
       notifyAllPlatforms(admin,db,conId,notificaition)
       response.end('Notifications sent');
       console.log("sendNotification Log:" + String(logMsg))
