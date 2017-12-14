@@ -577,7 +577,50 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                     duration: breakDuration,
                                                     hours: hours
                                                 }).then(function () {
-                                                    response.end("Successful break end");
+
+                                                    var latestShiftRef = firestore.doc("users/" + contactId + "/shift/" + latestShiftDoc.id)
+                                                    latestShiftRef.get().then(function (shiftDoc) { 
+                                                        var completedBreakDuration
+                                                        if (shiftDoc.data().completedBreakDuration == null) {
+                                                            completedBreakDuration = breakDuration
+                                                        } else {
+                                                            completedBreakDuration = (shiftDoc.data().completedBreakDuration) + breakDuration
+                                                        }
+                                                            latestShiftRef.update({
+                                                                completedBreakDuration: completedBreakDuration
+                                                            }).then(function () {
+                                                                latestShiftRef.collection("jobs/").orderBy("startTime", "desc").limit(1).get().then(function (jobsref) {
+                                                                    if (jobsref.size != 0) { 
+
+                                                                        jobsref.forEach(function (jobdoc) {
+                                                                            if (jobdoc.data().endTime == null) {
+
+                                                                                var jobCompletedBreakDuration
+                                                                                if (jobdoc.data().completedBreakDuration == null) {
+                                                                                    jobCompletedBreakDuration = breakDuration
+                                                                                } else { 
+                                                                                    jobCompletedBreakDuration = (jobdoc.data().completedBreakDuration) + breakDuration
+                                                                                }
+
+                                                                                firestore.doc("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/" + jobdoc.id ).update({
+                                                                                    completedBreakDuration: jobCompletedBreakDuration
+                                                                                }).then(function () {
+                                                                                    response.end("Successful break end");
+                                                                                })
+                                                                                
+                                                                            } else { 
+                                                                                response.end("Successful break end");
+                                                                            }
+                                                                        })
+                                                                    } else {
+                                                                        response.end("Successful break end");
+                                                                    }
+                                                                })
+                                                            })
+                                                        
+                                                    })
+
+                                                    
                                                 })
                                             })
 
