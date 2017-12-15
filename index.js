@@ -23,8 +23,8 @@ exports.helloWorld = functions.https.onRequest((request, response) => {
 
 exports.clockIn = functions.https.onRequest((request, response) => {
 
-    var conId = request.query.conId
-    var location = request.query.location
+    var conId = request.body.conId
+    var location = request.body.location
 
     var firestore = admin.firestore();
 
@@ -38,6 +38,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                 console.log(shiftWithNewestStartDate.data().endTime)
                 if (shiftWithNewestStartDate.data().endTime == null) {
                     response.status(201)
+                    console.log("There is already an open shift")
                     response.end("There is already an open shift")
                 } else {
                     firestore.collection("users/" + conId + "/shift").add({
@@ -64,8 +65,8 @@ exports.clockIn = functions.https.onRequest((request, response) => {
 exports.clockOut = functions.https.onRequest((request, response) => {
 
     var firestore = admin.firestore();
-    var contactId = request.query.conId
-    var location = request.query.location
+    var contactId = request.body.conId
+    var location = request.body.location
 
     firestore.collection("users/" + contactId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
         if (shiftCollection.size != 0) {
@@ -73,6 +74,8 @@ exports.clockOut = functions.https.onRequest((request, response) => {
             shiftCollection.forEach(function (latestShiftDoc) {
                 if (latestShiftDoc.data().endTime != null) {
                     response.status(201)
+                    response.statusMessage = "Hello"
+                    console.log("There is no open shift")
                     response.end("There is no open shift")
                 } else {
 
@@ -205,8 +208,8 @@ exports.startJob = functions.https.onRequest((request, response) => {
 
     // args of contact id and project id
 
-    var contactId = request.query.conId
-    var projId = request.query.projectId
+    var contactId = request.body.conId
+    var projId = request.body.projectId
 
     var db = admin.database();
     var firestore = admin.firestore();
@@ -309,7 +312,7 @@ exports.endJob = functions.https.onRequest((request, response) => {
 
     var db = admin.database();
 
-    var contactId = request.query.conId
+    var contactId = request.body.conId
 
     var firestore = admin.firestore();
 
@@ -428,7 +431,7 @@ function performJobEnd(latestJobRef, latestShiftDoc, contactId, response) {
 
 exports.startBreak = functions.https.onRequest((request, response) => {
 
-    var contactId = request.query.conId
+    var contactId = request.body.conId
 
     var db = admin.database();
     var firestore = admin.firestore();
@@ -534,7 +537,7 @@ exports.startBreak = functions.https.onRequest((request, response) => {
 exports.endBreak = functions.https.onRequest((request, response) => {
 
 
-    var contactId = request.query.conId
+    var contactId = request.body.conId
     var db = admin.database();
     var firestore = admin.firestore();
 
