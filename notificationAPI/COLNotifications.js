@@ -16,7 +16,8 @@ exports.sendNotification = function(request, response, admin) {
       var content = request.body.content
       var type = request.body.type
       var itemId = request.body.itemId
-      var title = request.body.title
+    var title = request.body.title
+    var projectId = request.body.projectId
     
       var db = admin.database();
     var logMsg = {}
@@ -24,7 +25,9 @@ exports.sendNotification = function(request, response, admin) {
       logMsg.content = content
       logMsg.type = type
       logMsg.itemId = itemId
-      db.ref('/users/' + conId + '/notifications/' + type).push().set(itemId);
+    db.ref('/users/' + conId + '/notifications/' + type).push().child(projectId).set(itemId)
+        
+    
       var data = {
           notificationContent: title,
           notificationType: String(type)
@@ -41,7 +44,8 @@ exports.resetNotification = function(request, response, admin) {
      // Use database to declare databaseRefs:
      var conId = request.body.conId
      var content = request.body.content
-     var type = request.body.type
+    var type = request.body.type
+    var projectId = request.body.projectId
      var db = admin.database();
 
      var logMsg = {}
@@ -49,7 +53,7 @@ exports.resetNotification = function(request, response, admin) {
      logMsg.content = content
      logMsg.type = type
 
-     db.ref('/users/' + conId + '/notifications/' + type).remove()
+     db.ref('/users/' + conId + '/notifications/' + type ).remove()
      response.end('Notifications cleared');
      console.log("resetNotification Log:" + String(logMsg))
 }
