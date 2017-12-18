@@ -18,7 +18,7 @@ exports.sendNotification = function(request, response, admin) {
       var itemId = request.body.itemId
     var title = request.body.title
     var projectId = request.body.projectId
-    
+
       var db = admin.database();
     var logMsg = {}
       logMsg.conID = conId
@@ -26,8 +26,8 @@ exports.sendNotification = function(request, response, admin) {
       logMsg.type = type
       logMsg.itemId = itemId
     db.ref('/users/' + conId + '/notifications/' + type).push().child(projectId).set(itemId)
-        
-    
+
+
       var data = {
           notificationContent: title,
           notificationType: String(type)
@@ -37,6 +37,69 @@ exports.sendNotification = function(request, response, admin) {
       response.end('Notifications sent');
       console.log("sendNotification Log:" + String(logMsg))
  }
+
+//returns broken down notification json either filtered by project or aggregated
+exports.getCOLNotifications = function(request, response, admin) {
+  // Use database to declare databaseRefs:
+  var conId = String(request.query.conId)
+  var projectId = String(request.query.projectId)
+
+  var db = admin.database();
+  var logMsg = {}
+  logMsg.conID = conId
+  logMsg.projectId = projectId
+
+
+  var notificationsRef = db.ref("users/" + conId + "/notifications")
+  var result = {}
+  if (projectId == "-1") {
+    //this iterates through colfeature type
+    try {
+      notificationsRef.once("value", function(colFeatureTypes){
+        colFeatureTypes.forEach(function(featureType) {
+          result[featureType.key] = featureType.numChildren()
+        })
+        response.status(200).end(JSON.stringify(result))
+        console.log("Notifications:", result)
+      }, function(err){
+        response.status(400).end("error getting notifications for user")
+        console.error(err.message);
+      })
+    }catch (err) {
+      var errMSG = 'Error getting notifications for user' + err.message
+      response.status(400).end(JSON.stringify(errMSG))
+      console.error(errMSG);
+    }
+  }else{
+    try {
+      notificationsRef.once("value", function(colFeatureTypes){
+        console.log("Filtered Notifications:", colFeatureTypes.val())
+        colFeatureTypes.val().forEach(function(featureType) {
+          var featureRef = notificationsRef.child(featureType.key)
+          featureRef.orderByChild(projectId).equalTo(true).on("value", function(existForProj) {
+
+            console.log(" count Notifications:", existForProj.numChildren())
+            existForProj.forEach(function(countForProject) {
+              result[existForProj.key] = countForProject.numChildren()
+            })
+            console.log("Filtered Notifications:", existForProj)
+            response.status(200).end(JSON.stringify(result))
+          })
+        })
+        console.log("Notifications:", result)
+      }, function(err){
+        response.status(400).end("error getting notifications for user")
+        console.error(err.message);
+      })
+    }catch (err) {
+      var errMSG = 'Error getting notifications for user' + err.message
+      response.status(400).end(JSON.stringify(errMSG))
+      console.error(errMSG);
+    }
+  }
+
+}
+
 
 
 //{"conId":"202426","content":"hellooo from ios","type":2}

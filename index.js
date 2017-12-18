@@ -59,7 +59,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
         }
     })
 
-    
+
 })
 
 exports.clockOut = functions.https.onRequest((request, response) => {
@@ -174,7 +174,7 @@ function performClockOut(latestShiftRef, location, contactId, response) {
                         var hours = minutes / 60
                         hours = hours.toFixed(2)
 
-                        
+
 
                         var generalSeconds = generalDuration / 1000
                         var generalMinutes = generalSeconds / 60
@@ -346,7 +346,7 @@ exports.endJob = functions.https.onRequest((request, response) => {
                                                     response.end("user is on break,  please end before ending the job")
 
                                                 } else {
-                                                    
+
                                                     performJobEnd(latestJobRef,latestShiftDoc, contactId, response)
                                                 }
                                             })
@@ -397,7 +397,7 @@ function performJobEnd(latestJobRef, latestShiftDoc, contactId, response) {
                     var duration = updatedJob.data().endTime - updatedJob.data().startTime
                     duration -= totalBreakDuration
 
-                   
+
 
                     var seconds = duration / 1000
                     console.log(seconds)
@@ -454,14 +454,14 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobCollection) {
 
                                         var jobId
-                                       
+
                                             jobCollection.forEach(function (latestJobDoc) {
                                                 if (latestJobDoc.exists && latestJobDoc.data().endTime == null) {
                                                     jobId = latestJobDoc.id
                                                     console.log(jobId)
                                                 }
                                             })
-                                        
+
 
                                         console.log(jobId)
                                         if (jobId == null) {
@@ -488,7 +488,7 @@ exports.startBreak = functions.https.onRequest((request, response) => {
 
                                 var jobId
 
-                                    
+
                                     jobCollection.forEach(function (latestJobDoc) {
 
                                         if (latestJobDoc.exists && latestJobDoc.data().endTime == null) {
@@ -496,7 +496,7 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                             console.log(jobId)
                                         }
                                     })
-                                
+
 
 
                                 console.log(jobId)
@@ -582,7 +582,7 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                 }).then(function () {
 
                                                     var latestShiftRef = firestore.doc("users/" + contactId + "/shift/" + latestShiftDoc.id)
-                                                    latestShiftRef.get().then(function (shiftDoc) { 
+                                                    latestShiftRef.get().then(function (shiftDoc) {
                                                         var completedBreakDuration
                                                         if (shiftDoc.data().completedBreakDuration == null) {
                                                             completedBreakDuration = breakDuration
@@ -593,7 +593,7 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                                 completedBreakDuration: completedBreakDuration
                                                             }).then(function () {
                                                                 latestShiftRef.collection("jobs/").orderBy("startTime", "desc").limit(1).get().then(function (jobsref) {
-                                                                    if (jobsref.size != 0) { 
+                                                                    if (jobsref.size != 0) {
 
                                                                         jobsref.forEach(function (jobdoc) {
                                                                             if (jobdoc.data().endTime == null) {
@@ -601,7 +601,7 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                                                 var jobCompletedBreakDuration
                                                                                 if (jobdoc.data().completedBreakDuration == null) {
                                                                                     jobCompletedBreakDuration = breakDuration
-                                                                                } else { 
+                                                                                } else {
                                                                                     jobCompletedBreakDuration = (jobdoc.data().completedBreakDuration) + breakDuration
                                                                                 }
 
@@ -610,8 +610,8 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                                                 }).then(function () {
                                                                                     response.end("Successful break end");
                                                                                 })
-                                                                                
-                                                                            } else { 
+
+                                                                            } else {
                                                                                 response.end("Successful break end");
                                                                             }
                                                                         })
@@ -620,10 +620,10 @@ exports.endBreak = functions.https.onRequest((request, response) => {
                                                                     }
                                                                 })
                                                             })
-                                                        
+
                                                     })
 
-                                                    
+
                                                 })
                                             })
 
@@ -779,6 +779,16 @@ exports.clearCOLNotification = functions.https.onRequest((request, response) => 
    }
   COLNotificationAPI.resetNotification(request, response, admin);
 });
+
+exports.getCOLNotifications = functions.https.onRequest((request, response) => {
+  if (request.method != "GET") {
+     response.status(400).send("Invalid Request Method: requires GET");
+     return;
+   }
+  COLNotificationAPI.getCOLNotifications(request, response, admin);
+});
+
+
 
 exports.clockInShift = functions.https.onRequest((request, response) => {
   if (request.method != "POST") {
