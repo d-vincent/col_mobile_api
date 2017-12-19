@@ -99,11 +99,11 @@ function countNotificationForProjects(notificationsRef, projectIds,callBack){
           if (result[notifInfo.key][featureType.key] === undefined) {
             result[notifInfo.key][featureType.key] = []
           }
-          result[notifInfo.key][featureType.key].push(notifInfo.val())
+          result[notifInfo.key][featureType.key].push(String(notifInfo.val()))
           })
         })
       })
-      if (!projectIds.includes("-1")){
+      if (!projectIds.includes("-1")){ //removes the project if its not requested.
         Object.keys(result).filter(key => (!projectIds
           .includes(key)))
           .forEach(key => delete result[key])
