@@ -780,9 +780,19 @@ exports.clearCOLNotification = functions.https.onRequest((request, response) => 
   COLNotificationAPI.resetNotification(request, response, admin);
 });
 
+
+//returns count of notification for each feature by filtered by project {feature: count}
 exports.getCOLNotifications = functions.https.onRequest((request, response) => {
-  if (request.method != "GET") {
-     response.status(400).send("Invalid Request Method: requires GET");
+  if (request.method != "POST") {
+     response.status(400).send("Invalid Request Method: requires POST");
+     return;
+   }
+   if (request.body.conId == null) {
+       response.status(400).send("Invalid Request Body: requires COL ID {conId}");
+     return;
+   }
+   if (request.body.projectIds == null) {
+       response.status(400).send("Invalid Request Body: requires projectIds {projectIds: [ids]}");
      return;
    }
   COLNotificationAPI.getCOLNotifications(request, response, admin);
