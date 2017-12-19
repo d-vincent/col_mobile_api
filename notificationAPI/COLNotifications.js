@@ -71,31 +71,7 @@ exports.getCOLNotifications = function(request, response, admin) {
       console.error(errMSG);
     }
   }else{
-    try {
-      notificationsRef.once("value", function(colFeatureTypes){
-        console.log("Filtered Notifications:", colFeatureTypes.val())
-        colFeatureTypes.val().forEach(function(featureType) {
-          var featureRef = notificationsRef.child(featureType.key)
-          featureRef.orderByChild(projectId).equalTo(true).on("value", function(existForProj) {
 
-            console.log(" count Notifications:", existForProj.numChildren())
-            existForProj.forEach(function(countForProject) {
-              result[existForProj.key] = countForProject.numChildren()
-            })
-            console.log("Filtered Notifications:", existForProj)
-            response.status(200).end(JSON.stringify(result))
-          })
-        })
-        console.log("Notifications:", result)
-      }, function(err){
-        response.status(400).end("error getting notifications for user")
-        console.error(err.message);
-      })
-    }catch (err) {
-      var errMSG = 'Error getting notifications for user' + err.message
-      response.status(400).end(JSON.stringify(errMSG))
-      console.error(errMSG);
-    }
   }
 
 }
@@ -121,6 +97,39 @@ exports.resetNotification = function(request, response, admin) {
      console.log("resetNotification Log:" + String(logMsg))
 }
 
+function countNotificationForProject(notificationsRef, projectId,callBack){
+  var result = {}
+  try {
+    notificationsRef.once("value", function(colFeatureTypes){
+      console.log("Filtered Notifications:", colFeatureTypes.val())
+      colFeatureTypes.forEach(function(featureType) {
+        featureType.forEach(function(notification) {
+          //theres only 1 key value pair {proj:itemid}
+          notification.forEach(function(notifInfo){
+            if (notifInfo.key == projectId) {
+              var currCnt = result[featureType.key]
+              result[featureType.key] = currCnt === undefined ? 1 : currCnt + 1
+            }
+          })
+        })
+      })
+      response.status(200).end(JSON.stringify(result))
+      console.log("Notifications:", result)
+    }, function(err){
+      response.status(400).end("error getting notifications for user")
+      console.error(err.message);
+    })
+  }catch (err) {
+    var errMSG = 'Error getting notifications for user' + err.message
+    response.status(400).end(JSON.stringify(errMSG))
+    console.error(errMSG);
+  }
+}
+
+
+
+
+//this should be refactored out to notifier and remove the dependency to admin and db
 function notifyAllPlatforms (admin,db,conId,payload){
     var tokens = [];
     tokens.push(db.ref('/users/' + conId + '/tokens/android'));
