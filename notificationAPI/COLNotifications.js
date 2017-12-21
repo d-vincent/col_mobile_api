@@ -69,20 +69,25 @@ exports.getCOLNotifications = function(request, response, admin) {
 //{"conId":"202426","content":"hellooo from ios","type":2}
 exports.resetNotification = function(request, response, admin) {
      // Use database to declare databaseRefs:
-     var conId = request.body.conId
-     var content = request.body.content
-    var type = request.body.type
-    var projectId = request.body.projectId
-     var db = admin.database();
+  var conId = request.body.conId
+  var featureType = request.body.type
+  var projectId = request.body.projectId
+  var itemIds = request.body.itemIds
+  var db = admin.database();
 
-     var logMsg = {}
-     logMsg.conID = conId
-     logMsg.content = content
-     logMsg.type = type
-
-     db.ref('/users/' + conId + '/notifications/' + type ).remove()
-     response.end('Notifications cleared');
+  var logMsg = {}
+  logMsg.conID = conId
+  logMsg.type = type
+  resetNotifications(notificationsRef, featureType, projectId,itemIds, function(result,success){
+   if (success) {
+     response.status(200).end(JSON.stringify(result))
      console.log("resetNotification Log:" + String(logMsg))
+   }else{
+     logMsg.error = result
+     response.status(400).end(JSON.stringify(result))
+     console.error("resetNotification Log:" + String(logMsg))
+   }
+  })
 }
 
 function countNotificationForProjects(notificationsRef, projectIds,callBack){
@@ -121,6 +126,42 @@ function countNotificationForProjects(notificationsRef, projectIds,callBack){
     console.error(result.error);
   }
 }
+
+function resetNotifications(featureType, projectId,itemIds,callBack) {
+  try {
+    if (featureType == "-1"){ //removes all notificaitons
+        notificationsRef.remove()
+        callBack("Notification Reset Successfully.", true)
+    }else{
+      notificationsRef.once("value", function(colFeatureTypes){
+        colFeatureTypes.forEach(function(featureType) {
+          featureType.forEach(function(notification) {
+              notification.forEach(function(notifInfo){
+              //notifInfo.key : project id
+              //notifInfo.val() : item id
+                if(projectIds.includes(notifInfo.key)){
+                  notification.remove()
+                }
+              })//end of notification
+            })//end of featureType
+          })//end of colFeatureTypes
+        })
+        callBack("Notification Reset Successfully for Projects.", true)
+        console.log("Notifications cleared", result)
+      }, function(err){
+        var errLog = "Clear Notification: error getting notifications for user:" + err.message
+        callBack(errLog, false)
+        console.error(errLog);
+      })
+    }
+  }catch (err) {
+    var errLog = 'Error getting notifications for user' + err.message
+    callBack(errLog, false)
+    console.error(errLog);
+  }
+}
+
+
 
 //this should be refactored out to notifier and remove the dependency to admin and db
 function notifyAllPlatforms (admin,db,conId,payload){
