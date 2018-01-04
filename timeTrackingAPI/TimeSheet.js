@@ -1,7 +1,7 @@
 'use strict';
 
 exports.clockIn = function(shiftsRef,startTime,location,callBack){
-  checkForOpenShifts(shiftsRef,conId,function(openShiftIDs){
+  checkForOpenShifts(shiftsRef,function(openShiftIDs){
     if (openShiftIDs.length == 0){
       shiftsRef.add({
           startTime: startTime,
@@ -30,7 +30,9 @@ exports.clockIn = function(shiftsRef,startTime,location,callBack){
 }
 
 //returns a collection of openshift if there are any
-exports.checkForOpenShifts = function(shiftsRef,callBack) {
+exports.checkForOpenShifts = checkForOpenShifts
+
+function checkForOpenShifts (shiftsRef,callBack) {
   var openShiftIDs = []
   shiftsRef.where('endTime', '==', null).get()
     .then(snapshot => {
@@ -45,6 +47,7 @@ exports.checkForOpenShifts = function(shiftsRef,callBack) {
       callBack(openShiftIDs)
     });
 }
+
 //calculates duration for
 function updateShiftDuration(){
 
