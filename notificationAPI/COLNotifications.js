@@ -132,11 +132,12 @@ function resetNotifications(featureType, projectId,itemIds,callBack) {
     if (featureType == "-1"){ //removes all notificaitons
         notificationsRef.remove()
         callBack("Notification Reset Successfully.", true)
-    }else{
+    }
+    else{
       notificationsRef.once("value", function(colFeatureTypes){
         colFeatureTypes.forEach(function(featureType) {
           featureType.forEach(function(notification) {
-              notification.forEach(function(notifInfo){
+              notification.forEach(function(notifInfo) {
               //notifInfo.key : project id
               //notifInfo.val() : item id
                 if(projectIds.includes(notifInfo.key)){
@@ -145,7 +146,6 @@ function resetNotifications(featureType, projectId,itemIds,callBack) {
               })//end of notification
             })//end of featureType
           })//end of colFeatureTypes
-        })
         callBack("Notification Reset Successfully for Projects.", true)
         console.log("Notifications cleared", result)
       }, function(err){
