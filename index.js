@@ -41,25 +41,45 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                     console.log("There is already an open shift")
                     response.end("There is already an open shift")
                 } else {
-                    firestore.collection("users/" + conId + "/shift").add({
+
+                    var docRef = firestore.collection("users/" + conId + "/shift").doc();
+                    var docId = docRef.id
+                    docRef.set({
                         startTime: admin.firestore.FieldValue.serverTimestamp(),
-                        startLocation: location
+                        startLocation: location,
+                        endTime: null
                     }).then(function () {
-                        response.end("Successful clock in");
+
+                        response.end("{" + docId + "}");
                     })
                 }
             })
         } else {
-            firestore.collection("users/" + conId + "/shift").add({
+
+            var docRef = firestore.collection("users/" + conId + "/shift").doc();
+            var docId = docRef.id
+            docRef.set({
                 startTime: admin.firestore.FieldValue.serverTimestamp(),
-                startLocation: location
+                startLocation: location,
+                endTime: null
             }).then(function () {
-                response.end("Successful clock in");
+                
+                response.end("{" + docId + "}");
             })
+
+            // firestore.collection("users/" + conId + "/shift").add({
+            //     startTime: admin.firestore.FieldValue.serverTimestamp(),
+            //     startLocation: location
+            // }).then(function () {
+            //     response.end("Successful clock in");
+            // })
         }
     })
+<<<<<<< Updated upstream
 
 
+=======
+>>>>>>> Stashed changes
 })
 
 exports.clockOut = functions.https.onRequest((request, response) => {
@@ -243,20 +263,28 @@ exports.startJob = functions.https.onRequest((request, response) => {
 
                                                 } else {
 
-                                                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
+                                                    var docRef = firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").doc();
+                                                    var docId = docRef.id
+
+                                                    docRef.set({
                                                         startTime: admin.firestore.FieldValue.serverTimestamp(),
-                                                        projectId: projId
+                                                        projectId: projId,
+                                                        endTime: null
                                                     }).then(function () {
-                                                        response.end("Successful Job Start");
+                                                        response.end("{" + docId + "}");
                                                     })
                                                 }
                                             })
                                         } else {
-                                            firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").add({
+                                            var docRef = firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs/").doc();
+                                            var docId = docRef.id
+
+                                            docRef.set({
                                                 startTime: admin.firestore.FieldValue.serverTimestamp(),
-                                                projectId: projId
+                                                projectId: projId,
+                                                endTime: null
                                             }).then(function () {
-                                                response.end("Successful Job Start");
+                                                response.end("{" + docId + "}");
                                             })
                                         }
                                     })
@@ -420,7 +448,7 @@ function performJobEnd(latestJobRef, latestShiftDoc, contactId, response) {
                     })
                 })
             })
-
+            
         })
     })
 
@@ -467,7 +495,8 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                         if (jobId == null) {
 
                                             firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").add({
-                                                startTime: admin.firestore.FieldValue.serverTimestamp()
+                                                startTime: admin.firestore.FieldValue.serverTimestamp(),
+                                                endTime: null
 
                                             }).then(function () {
                                                 response.end("BreakStart");
@@ -475,7 +504,8 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                         } else {
                                             firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").add({
                                                 startTime: admin.firestore.FieldValue.serverTimestamp(),
-                                                jobId: jobId
+                                                jobId: jobId,
+                                                endTime: null
                                             }).then(function () {
                                                 response.end("BreakStart");
                                             })
