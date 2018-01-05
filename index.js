@@ -63,7 +63,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                 startLocation: location,
                 endTime: null
             }).then(function () {
-                
+
                 response.end("{" + docId + "}");
             })
 
@@ -75,11 +75,6 @@ exports.clockIn = functions.https.onRequest((request, response) => {
             // })
         }
     })
-<<<<<<< Updated upstream
-
-
-=======
->>>>>>> Stashed changes
 })
 
 exports.clockOut = functions.https.onRequest((request, response) => {
@@ -448,7 +443,7 @@ function performJobEnd(latestJobRef, latestShiftDoc, contactId, response) {
                     })
                 })
             })
-            
+
         })
     })
 
