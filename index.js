@@ -64,7 +64,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                 endTime: null
             }).then(function () {
 
-                response.end("{" + docId + "}");
+                response.end("{ \"ID\":" + docId + "}");
             })
 
             // firestore.collection("users/" + conId + "/shift").add({
@@ -93,8 +93,6 @@ exports.clockOut = functions.https.onRequest((request, response) => {
                     console.log("There is no open shift")
                     response.end("There is no open shift")
                 } else {
-
-
                     var latestShiftRef = firestore.doc("users/" + contactId + "/shift/" + latestShiftDoc.id)
                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
 
