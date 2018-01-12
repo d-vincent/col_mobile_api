@@ -50,7 +50,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                         endTime: null
                     }).then(function () {
 
-                        response.end("{" + docId + "}");
+                        response.end("{ \"ID\":" + docId + "}");
                     })
                 }
             })
