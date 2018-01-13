@@ -7,11 +7,20 @@ let admin = require('firebase-admin');
 let FieldValue = require("firebase-admin").FieldValue;
 
 admin.initializeApp(functions.config().firebase);
-
+let initialised = false;
 //should list the apis here
-const COLNotificationAPI = require('./notificationAPI/COLNotifications');
-const ChatNotificationAPI = require('./notificationAPI/ChatNotifications');
-const TimeSheetAPI = require('./timeTrackingAPI/TimeSheetAPI');
+let COLNotificationAPI;
+let ChatNotificationAPI;
+let TimeSheetAPI;
+
+
+function init() {
+  if(initialized) {return;}
+  COLNotificationAPI = require('./notificationAPI/COLNotifications');
+  ChatNotificationAPI = require('./notificationAPI/ChatNotifications');
+  TimeSheetAPI = require('./timeTrackingAPI/TimeSheetAPI');
+  initialized = true;
+}
 
 
 // // Create and Deploy Your First Cloud Functions
@@ -39,7 +48,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                 if (shiftWithNewestStartDate.data().endTime == null) {
                     response.status(201)
                     console.log("There is already an open shift")
-                    response.end("There is already an open shift")
+                    response.send("There is already an open shift")
                 } else {
 
                     var docRef = firestore.collection("users/" + conId + "/shift").doc();
@@ -50,7 +59,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                         endTime: null
                     }).then(function () {
 
-                        response.end("{ \"ID\":" + docId + "}");
+                        response.json({ID:docId });
                     })
                 }
             })
@@ -64,7 +73,7 @@ exports.clockIn = functions.https.onRequest((request, response) => {
                 endTime: null
             }).then(function () {
 
-                response.end("{ \"ID\":" + docId + "}");
+                response.json({ID:docId });
             })
 
             // firestore.collection("users/" + conId + "/shift").add({
@@ -100,8 +109,7 @@ exports.clockOut = functions.https.onRequest((request, response) => {
 
                             breakCollection.forEach(function (latestBreakDoc) {
                                 if (latestBreakDoc.data().endTime == null) {
-                                    response.status(201)
-                                    response.end("User is on break")
+                                    response.status(201).json({error:"User is on break"})
                                 } else {
 
                                     firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
@@ -109,8 +117,7 @@ exports.clockOut = functions.https.onRequest((request, response) => {
 
                                             jobsCollection.forEach(function (latestJobDoc) {
                                                 if (latestJobDoc.data().endTime == null) {
-                                                    response.status(201)
-                                                    response.end("User is on job")
+                                                    response.status(201).json({error:"User is on job"})
                                                 } else {
 
                                                     performClockOut(latestShiftRef, location, contactId, response)
@@ -130,8 +137,7 @@ exports.clockOut = functions.https.onRequest((request, response) => {
                                     console.log("found a job")
                                     jobsCollection.forEach(function (latestJobDoc) {
                                         if (latestJobDoc.data().endTime == null) {
-                                            response.status(201)
-                                            response.end("User is on job")
+                                            response.status(201).json({error:"User is on job"})
                                         } else {
 
                                             performClockOut(latestShiftRef, location, contactId, response)
@@ -188,12 +194,10 @@ function performClockOut(latestShiftRef, location, contactId, response) {
                         hours = hours.toFixed(2)
 
 
-
                         var generalSeconds = generalDuration / 1000
                         var generalMinutes = generalSeconds / 60
                         var generalHours = generalMinutes / 60
                         generalHours = generalHours.toFixed(2)
-
 
 
 
@@ -203,8 +207,7 @@ function performClockOut(latestShiftRef, location, contactId, response) {
                             hours: hours,
                             generalHours, generalHours
                         }).then(function () {
-                            response.status(200)
-                            response.end("Clocked out")
+                            response.status(200).json({result:"Clocked out"})
                         })
                     })
                 })
@@ -722,11 +725,11 @@ exports.getCOLNotifications = functions.https.onRequest((request, response) => {
 
 exports.clockInShift = functions.https.onRequest((request, response) => {
   if (request.method != "POST") {
-      response.status(400).send("Invalid Request Method: requires POST");
+      response.status(400).json({error: "Invalid Request Method: requires POST"});
      return;
    }
    if (request.body.conId == null) {
-       response.status(400).send("Invalid Request Body: requires COL ID {conId}");
+       response.status(400).json({error: "Invalid Request Body: requires COL ID {conId}"});
      return;
    }
    TimeSheetAPI.clockIn(request, response,admin);
