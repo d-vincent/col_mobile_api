@@ -11,9 +11,9 @@ exports.clockIn = function(request, response, admin) {
     var shiftsRef = firestore.collection("users/" + conId + "/shift")
     TimeSheet.clockIn(shiftsRef,start,location,function(success, shiftOrOpenShifts){
       if(success){
-        response.status(200).end(JSON.stringify(shiftOrOpenShifts))
+        response.status(200).json(shiftOrOpenShifts)
       }else{
-        response.status(201).end(JSON.stringify(shiftOrOpenShifts))
+        response.status(201).json(shiftOrOpenShifts)
       }
     })
 };
