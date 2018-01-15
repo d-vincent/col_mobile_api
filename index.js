@@ -11,14 +11,12 @@ let initialised = false;
 //should list the apis here
 let COLNotificationAPI;
 let ChatNotificationAPI;
-let TimeSheetAPI;
-
+const TimeSheetClass = require('./timeTrackingAPI/TimeSheet');
 
 function init() {
   if(initialized) {return;}
   COLNotificationAPI = require('./notificationAPI/COLNotifications');
   ChatNotificationAPI = require('./notificationAPI/ChatNotifications');
-  TimeSheetAPI = require('./timeTrackingAPI/TimeSheetAPI');
   initialized = true;
 }
 
@@ -653,6 +651,38 @@ exports.endBreak = functions.https.onRequest((request, response) => {
 
 })
 
+exports.newShift = functions.firestore
+  .document('/users/{userID}/shift/{shiftID}')
+    .onCreate(event => {
+    var endTime = event.data.data().endTime;
+    var newShiftRef = event.data.ref;
+    if (endTime == null ) {
+      //this is a clockIn
+      TimeSheetClass.verifyClockIn(newShiftRef);
+    }else{
+      //just adding new shift, prob import
+      //should call update duration here.
+    }
+});
+
+exports.updateShift = functions.firestore
+  .document('/users/{userID}/shift/{shiftID}')
+    .onUpdate(event => {
+    var newEndTime = event.data.data().endTime;
+    var oldEndTime = event.data.previous.data().endTime;
+    var shiftRef = event.data.ref;
+    if (oldEndTime == null && newEndTime != null) {
+      // this is clock out
+      TimeSheetClass.verifyClockOut(shiftRef,event.data.previous.data())
+    } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
+      //this is just an update, should update all duration
+      TimeSheetClass.updateShiftDuration(shiftRef)
+    }else if (oldEndTime != null && newEndTime == null) {
+        //this clockout failure corrective update
+    }else{// old endtime is null and still null,  jsut a generic update
+      TimeSheetClass.updateShiftDuration(shiftRef)
+    }
+});
 
 
 //triggers eachtime a new message is created
@@ -697,18 +727,4 @@ exports.getCOLNotifications = functions.https.onRequest((request, response) => {
      return;
    }
   COLNotificationAPI.getCOLNotifications(request, response, admin);
-});
-
-
-
-exports.clockInShift = functions.https.onRequest((request, response) => {
-  if (request.method != "POST") {
-      response.status(400).json({error: "Invalid Request Method: requires POST"});
-     return;
-   }
-   if (request.body.conId == null) {
-       response.status(400).json({error: "Invalid Request Body: requires COL ID {conId}"});
-     return;
-   }
-   TimeSheetAPI.clockIn(request, response,admin);
 });

@@ -49,6 +49,15 @@ exports.checkForOpenJobs = function( jobsRef, callBack) {
 
 
 //calculates duration for
-function updateJobDuration(){
+exports.updateJobDuration = updateJobDuration
+function updateJobDuration(jobRef){
+  console.log("updating job duration:" +  jobRef.id);
+}
 
+function deleteJob(jobRef){
+  jobRef.delete().then(function() {
+      console.log("Deleted the invalid job:" +  jobRef.id);
+  }).catch(function(error) {
+      console.error("Error removing invalid job: ", jobRef.id);
+  });
 }
