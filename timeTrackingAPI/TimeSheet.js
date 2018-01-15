@@ -3,7 +3,6 @@
 
 
 exports.verifyClockIn = function(shiftRef){
-  console.log("clock triggered");
   checkForOpenShifts(shiftRef.parent,function(openShiftIDs){
     if (openShiftIDs.length == 1){ //the new shift should the only openshift
       if (shiftRef.id != openShiftIDs[0]) {
@@ -43,12 +42,12 @@ function checkForOpenShifts (shiftsRef,callBack) {
       snapshot.forEach(function (openShift) {
         openShiftIDs.push(openShift.id);
       })
-      console.log("Open Shifts:", openShiftIDs)
       callBack(openShiftIDs)
+      console.log("Open Shifts:", openShiftIDs)
     })
     .catch(err => {
-      console.log('Error getting openshifts', err);
       callBack(openShiftIDs)
+      console.log('Error getting openshifts', err);
     });
 }
 

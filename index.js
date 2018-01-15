@@ -654,7 +654,6 @@ exports.endBreak = functions.https.onRequest((request, response) => {
 exports.newShift = functions.firestore
   .document('/users/{userID}/shift/{shiftID}')
     .onCreate(event => {
-      console.log("newShift called")
     var endTime = event.data.data().endTime;
     var newShiftRef = event.data.ref;
     if (endTime == null ) {
@@ -669,7 +668,6 @@ exports.newShift = functions.firestore
 exports.updateShift = functions.firestore
   .document('/users/{userID}/shift/{shiftID}')
     .onUpdate(event => {
-      console.log("updating Shift called")
     var newEndTime = event.data.data().endTime;
     var oldEndTime = event.data.previous.data().endTime;
     var shiftRef = event.data.ref;
