@@ -501,7 +501,7 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                     })
 
 
-
+                                
                                 console.log(jobId)
                                 if (jobId == null) {
                                   var docRef = firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").doc();
@@ -670,8 +670,8 @@ exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shift
         var oldEndTime = event.data.previous.data().endTime;
         var breakRef = event.data.ref;
         if (oldEndTime == null && newEndTime != null) {
-            // this is jobEnd
-            TimeBreakClass.verifyBreakEnded(breakRef, event.data.previous.data())
+            // this is break end
+            TimeBreakClass.updateBreakDuration(breakRef)
         } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
             //this is just an update, should update all duration
             TimeBreakClass.updateBreakDuration(breakRef)
