@@ -1,3 +1,5 @@
+import { EACCES } from 'constants';
+
 
 'use strict';
 
@@ -12,6 +14,8 @@ let initialised = false;
 let COLNotificationAPI;
 let ChatNotificationAPI;
 const TimeSheetClass = require('./timeTrackingAPI/TimeSheet');
+const TimeJobClass = require('./timeTrackingAPI/TimeJob');
+const TimeBreakClass = require('./timeTrackingAPI/TimeBreak');
 
 function init() {
   if(initialized) {return;}
@@ -647,9 +651,66 @@ exports.endBreak = functions.https.onRequest((request, response) => {
             response.end("There is no open shift")
         }
     })
-
-
 })
+
+exports.newBreak = functions.firestore.document('/users/{userID}/shift/{shiftID}/breaks/{breakID}')
+    .onCreate(event => {
+        var endTime = event.data.data().endTime;
+        var newBreakRef = event.data.ref;
+        if (endTime == null) {
+            //this is a break start
+            TimeBreakClass.verifyBreakStart(newBreakRef);
+        } else {
+
+        }
+    })
+exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shiftID}/breaks/{breakID}")
+    .onUpdate(event => {
+        var newEndTime = event.data.data().endTime;
+        var oldEndTime = event.data.previous.data().endTime;
+        var breakRef = event.data.ref;
+        if (oldEndTime == null && newEndTime != null) {
+            // this is jobEnd
+            TimeBreakClass.verifyBreakEnded(breakRef, event.data.previous.data())
+        } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
+            //this is just an update, should update all duration
+            TimeBreakClass.updateBreakDuration(breakRef)
+        } else if (oldEndTime != null && newEndTime == null) {
+            //this job end failure corrective update
+        } else {// old endtime is null and still null,  jsut a generic update
+            TimeJobClass.updateBreakDuration (breakRef)
+        }
+})
+
+exports.newJob = functions.firestore.document('/users/{userID}/shift/{shiftID}/jobs/{jobID}')
+    .onCreate(event => { 
+        var endTime = event.data.data().endTime;
+        var newJobRef = event.data.ref;
+        if (endTime == null) {
+            //this is a job start
+            TimeJobClass.verifyJobStart(newJobRef);
+        } else {
+            
+        }
+    })
+
+exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId}/jobs/{jobId}')
+    .onUpdate(event => {
+        var newEndTime = event.data.data().endTime;
+        var oldEndTime = event.data.previous.data().endTime;
+        var jobRef = event.data.ref;
+        if (oldEndTime == null && newEndTime != null) {
+            // this is jobEnd
+            TimeJobClass.verifyJobEnd(jobRef, event.data.previous.data())
+        } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
+            //this is just an update, should update all duration
+            TimeJobClass.updateJobDuration(jobRef)
+        } else if (oldEndTime != null && newEndTime == null) {
+            //this job end failure corrective update
+        } else {// old endtime is null and still null,  jsut a generic update
+            TimeJobClass.updateJobDuration(jobRef)
+        }
+    })
 
 exports.newShift = functions.firestore
   .document('/users/{userID}/shift/{shiftID}')
