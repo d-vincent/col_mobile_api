@@ -1,3 +1,5 @@
+
+
 'use strict';
 
 
@@ -25,7 +27,64 @@ exports.verifyClockIn = function(shiftRef){
  */
 exports.verifyClockOut = function(shiftRef, oldShiftData ){
   console.log("clockOut triggered");
+ 
+  shiftRef.collection("breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
+
+    console.log("Checked for breaks")
+    if (breakCollection.size != 0) {
+
+      breakCollection.forEach(function (latestBreakDoc) {
+        if (latestBreakDoc.data().endTime == null) {
+          shiftRef.shiftRef(oldShiftData)
+          return;
+          
+        } else {
+
+          shiftRef.collection("jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
+            if (jobsCollection.size != 0) {
+
+              jobsCollection.forEach(function (latestJobDoc) {
+                if (latestJobDoc.data().endTime == null) {
+                  shiftRef.shiftRef(oldShiftData)
+                  return;
+                  
+                } else {
+
+                  updateShiftDuration(shiftRef)
+                }
+              })
+
+            } else {
+              updateShiftDuration(shiftRef)
+            }
+          })
+        }
+      })
+    }else {
+      shiftRef.collection("jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
+        console.log("Checking for jobs")
+        if (jobsCollection.size != 0) {
+
+          console.log("found a job")
+          jobsCollection.forEach(function (latestJobDoc) {
+            if (latestJobDoc.data().endTime == null) {
+              shiftRef.shiftRef(oldShiftData)
+              return;
+              
+            } else {
+
+              updateShiftDuration(shiftRef)
+            }
+          })
+
+        } else {
+          updateShiftDuration(shiftRef)
+        }
+      })
+    }
+  })
 }
+
 
 
 
@@ -36,7 +95,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
 exports.checkForOpenShifts = checkForOpenShifts
 function checkForOpenShifts (shiftsRef,callBack) {
   var openShiftIDs = []
-  console.log(shiftsRef);
+  //console.log(shiftsRef);
   shiftsRef.where('endTime', '==', null).get()
     .then(snapshot => {
       snapshot.forEach(function (openShift) {
@@ -54,7 +113,45 @@ function checkForOpenShifts (shiftsRef,callBack) {
 //calculates duration for
 exports.updateShiftDuration = updateShiftDuration
 function updateShiftDuration(shiftRef){
-  console.log("updating shift:" +  shiftRef.id);
+  console.log("updating shift:" + shiftRef.id);
+  shiftRef.get().then(function (shiftDoc) {
+
+    var duration = (shiftDoc.data().endTime - shiftDoc.data().startTime)
+
+    shiftRef.collection("breaks").get().then(function (shiftBreaks) {
+
+      shiftBreaks.forEach(function (shiftBreakDoc) {
+
+        duration -= shiftBreakDoc.data().duration
+      })
+      shiftRef.collection("jobs").get().then(function (shiftJobs) {
+
+        var generalDuration = duration
+        shiftJobs.forEach(function (shiftJobDoc) {
+          generalDuration -= shiftJobDoc.data().duration
+        })
+
+        var seconds = duration / 1000
+        var minutes = seconds / 60
+        var hours = minutes / 60
+        hours = hours.toFixed(2)
+
+        var generalSeconds = generalDuration / 1000
+        var generalMinutes = generalSeconds / 60
+        var generalHours = generalMinutes / 60
+        generalHours = generalHours.toFixed(2)
+
+        shiftRef.update({
+          duration: duration,
+          generalDuration: generalDuration,
+          hours: hours,
+          generalHours, generalHours
+        }).then(function () { 
+          return;
+        })
+      })
+    })
+  })
 }
 
 function deleteShift(shiftRef){
