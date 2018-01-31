@@ -116,8 +116,13 @@ function updateShiftDuration(shiftRef){
   console.log("updating shift:" + shiftRef.id);
   shiftRef.get().then(function (shiftDoc) {
 
-    var duration = (shiftDoc.data().endTime - shiftDoc.data().startTime)
-
+    var duration
+    if (shiftDoc.data().endTime == null) {
+      duration = null;
+      return;
+    } 
+    duration = (shiftDoc.data().endTime - shiftDoc.data().startTime)
+  
     shiftRef.collection("breaks").get().then(function (shiftBreaks) {
 
       shiftBreaks.forEach(function (shiftBreakDoc) {
@@ -151,7 +156,8 @@ function updateShiftDuration(shiftRef){
         })
       })
     })
-  })
+    })
+  
 }
 
 function deleteShift(shiftRef){
