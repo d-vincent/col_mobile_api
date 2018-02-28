@@ -6,7 +6,7 @@ const TimeSheetClass = require('./TimeSheet');
 exports.verifyJobStart = function (jobRef) {
   checkForOpenJobs(jobRef.parent, function (openJobIds) {
     if (openJobIds.length == 1) { //the new job should the only open job
-      if (jobRef.id != openShiftIDs[0]) {
+      if (jobRef.id != openJobIds[0]) {
         deleteJob(jobRef);
       } else {
         console.log("jobStartSuccessful");
@@ -71,7 +71,8 @@ exports.start = function (dbRef, conId, shiftID, startTime, location, callBack) 
 }
 
 //returns a collection of OpenJobs if there are any
-exports.checkForOpenJobs = function (jobsRef, callBack) {
+exports.checkForOpenJobs = checkForOpenJobs
+function checkForOpenJobs(jobsRef, callBack) {
   var openJobIDs = []
   jobsRef.where('endTime', '==', null).get()
     .then(snapshot => {
