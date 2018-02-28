@@ -1,5 +1,7 @@
 
 
+
+
 'use strict';
 
 
@@ -112,7 +114,7 @@ function checkForOpenShifts (shiftsRef,callBack) {
 
 //calculates duration for
 exports.updateShiftDuration = updateShiftDuration
-function updateShiftDuration(shiftRef){
+function updateShiftDuration(shiftRef, jobDoc) {
   console.log("updating shift:" + shiftRef.id);
   shiftRef.get().then(function (shiftDoc) {
 
@@ -120,44 +122,69 @@ function updateShiftDuration(shiftRef){
     if (shiftDoc.data().endTime == null) {
       duration = null;
       return;
-    } 
-    duration = (shiftDoc.data().endTime - shiftDoc.data().startTime)
-  
-    shiftRef.collection("breaks").get().then(function (shiftBreaks) {
+    }
+    if (jobDoc != null && shiftDoc.data().endTime < jobDoc.data().endTime) {
+      shiftRef.update({ endTime: jobDoc.data().endTime })
+    } else if (jobDoc != null && jobDoc.data().startTime < shiftDoc.data().startTime) { 
 
-      shiftBreaks.forEach(function (shiftBreakDoc) {
-
-        duration -= shiftBreakDoc.data().duration
+      shiftRef.update({
+        startTime: jobDoc.data().startTime
       })
-      shiftRef.collection("jobs").get().then(function (shiftJobs) {
+    }
+     else {
+      duration = (shiftDoc.data().endTime - shiftDoc.data().startTime)
+  
+      shiftRef.collection("breaks").get().then(function (shiftBreaks) {
 
-        var generalDuration = duration
-        shiftJobs.forEach(function (shiftJobDoc) {
-          generalDuration -= shiftJobDoc.data().duration
+        shiftBreaks.forEach(function (shiftBreakDoc) {
+
+          duration -= shiftBreakDoc.data().duration
         })
+        shiftRef.collection("jobs").get().then(function (shiftJobs) {
 
-        var seconds = duration / 1000
-        var minutes = seconds / 60
-        var hours = minutes / 60
-        hours = hours.toFixed(2)
+          var generalDuration = duration
+          shiftJobs.forEach(function (shiftJobDoc) {
 
-        var generalSeconds = generalDuration / 1000
-        var generalMinutes = generalSeconds / 60
-        var generalHours = generalMinutes / 60
-        generalHours = generalHours.toFixed(2)
+            generalDuration -= shiftJobDoc.data().duration
 
-        shiftRef.update({
-          duration: duration,
-          generalDuration: generalDuration,
-          hours: hours,
-          generalHours, generalHours
-        }).then(function () { 
-          return;
+            if (shiftDoc.data().endTime < shiftJobDoc.data().endTime) { 
+              shiftJobDoc.ref.update({
+                endTime: shiftDoc.data().endTime
+              })
+            }
+
+            if (shiftDoc.data().startTime > shiftJobDoc.data().startTime) { 
+              shiftJobDoc.ref.update({
+                startTime: shiftDoc.data().startTime
+              })
+            }
+
+          })
+
+          var seconds = duration / 1000
+          var minutes = seconds / 60
+          var hours = minutes / 60
+          hours = (hours.toFixed(2)) / 1
+
+          var generalSeconds = generalDuration / 1000
+          var generalMinutes = generalSeconds / 60
+          var generalHours = generalMinutes / 60
+          generalHours = (generalHours.toFixed(2)) / 1
+
+          shiftRef.update({
+            duration: duration,
+            generalDuration: generalDuration,
+            hours: hours,
+            generalHours, generalHours
+          }).then(function () {
+            return;
+          })
         })
       })
-    })
+    }
     })
   
+
 }
 
 function deleteShift(shiftRef){

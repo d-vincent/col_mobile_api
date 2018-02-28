@@ -677,9 +677,18 @@ exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shift
         }else if (oldEndTime == null && newEndTime != null) {
             // this is break end
             TimeBreakClass.updateBreakDuration(breakRef)
+            
         } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
             //this is just an update, should update all duration
-            TimeBreakClass.updateBreakDuration(breakRef)
+            TimeBreakClass.updateBreakDuration(breakRef, function () {
+                console.log("hi")
+                return true;
+            })
+            setTimeout(function () { 
+
+                return true;
+            }, 20000)
+            
         } else if (oldEndTime != null && newEndTime == null) {
             //this job end failure corrective update
         } else {// old endtime is null and still null,  jsut a generic update
@@ -718,7 +727,9 @@ exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId
             TimeJobClass.verifyJobEnd(jobRef, event.data.previous.data())
         } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
             //this is just an update, should update all duration
-            TimeJobClass.updateJobDuration(jobRef)
+            var shiftRef = jobRef.parent.parent
+            console.log("not end, updating job")
+            TimeJobClass.updateJobDuration(shiftRef,jobRef)
         } else if (oldEndTime != null && newEndTime == null) {
             //this job end failure corrective update
         } else if (oldEndTime == null && newEndTime == null){// old endtime is null and still null,  jsut a generic update

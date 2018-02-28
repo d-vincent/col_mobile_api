@@ -20,22 +20,23 @@ exports.verifyJobStart = function (jobRef) {
 
 exports.verifyJobEnd = function (jobRef, oldJobData) {
   var shiftRef = jobRef.parent.parent
+  updateJobDuration(shiftRef, jobRef)
 
-  shiftRef.collection("breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
+  // shiftRef.collection("breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
 
-    if (breakCollection.size != 0) {
-      breakCollection.forEach(function (latestBreakDoc) {
-        if (latestBreakDoc.data().endTime == null) {
-          response.status(201).json({ error: "user is on break,  please end before ending the job" });
-        } else {
-          updateJobDuration(shiftRef, jobRef)
-        }
-      })
-    } else {
+  //   if (breakCollection.size != 0) {
+  //     breakCollection.forEach(function (latestBreakDoc) {
+  //       if (latestBreakDoc.data().endTime == null) {
+  //         response.status(201).json({ error: "user is on break,  please end before ending the job" });
+  //       } else {
+  //         updateJobDuration(shiftRef, jobRef)
+  //       }
+  //     })
+  //   } else {
       
-      updateJobDuration(shiftRef, jobRef)
-    }
-  })
+  //     updateJobDuration(shiftRef, jobRef)
+  //   }
+  // })
 }
 
 
@@ -99,7 +100,9 @@ function updateJobDuration(shiftRef, jobRef) {
       })
     }
     
+   
     jobRef.get().then(function (jobDoc) { 
+      console.log("got the job")
       var duration = jobDoc.data().endTime - jobDoc.data().startTime
       duration -= totalBreakDuration
       var seconds = duration / 1000
@@ -107,14 +110,15 @@ function updateJobDuration(shiftRef, jobRef) {
       var minutes = seconds / 60
 
       var hours = minutes / 60
-      hours = hours.toFixed(2)
+      hours = (hours.toFixed(2))/1
 
+      
       jobRef.update({
         duration: duration,
         hours: hours
       }).then(function () { 
 
-        TimeSheetClass.updateShiftDuration(shiftRef);
+        TimeSheetClass.updateShiftDuration(shiftRef, jobDoc);
       })
     })
     

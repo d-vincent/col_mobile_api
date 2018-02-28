@@ -46,7 +46,7 @@ function checkForOpenBreaks (breaksRef,callBack) {
 
 //calculates duration for
 exports.updateBreakDuration = updateBreakDuration
-function updateBreakDuration(breakRef){
+function updateBreakDuration(breakRef, callbackFunction) {
   console.log("updating break duration:" + breakRef.id);
   var shiftRef = breakRef.parent.parent
 
@@ -58,54 +58,57 @@ function updateBreakDuration(breakRef){
     var seconds = breakDuration / 1000
     var minutes = seconds / 60
     var hours = minutes / 60
-    hours = hours.toFixed(2)
+    hours = (hours.toFixed(2)) / 1
 
-    breakRef.update({
+    return breakRef.update({
       duration: breakDuration,
       hours: hours
     }).then(function () {
 
     
-      shiftRef.get().then(function (shiftDoc) {
-        var completedBreakDuration
-        if (shiftDoc.data().completedBreakDuration == null) {
-          completedBreakDuration = breakDuration
-        } else {
-          completedBreakDuration = (shiftDoc.data().completedBreakDuration) + breakDuration
-        }
-        shiftRef.update({
-          completedBreakDuration: completedBreakDuration
-        }).then(function () {
-          shiftRef.collection("jobs/").orderBy("startTime", "desc").limit(1).get().then(function (jobsref) {
-            if (jobsref.size != 0) {
-
-              jobsref.forEach(function (jobdoc) {
-                if (jobdoc.data().endTime == null) {
-
-                  var jobCompletedBreakDuration
-                  if (jobdoc.data().completedBreakDuration == null) {
-                    jobCompletedBreakDuration = breakDuration
-                  } else {
-                    jobCompletedBreakDuration = (jobdoc.data().completedBreakDuration) + breakDuration
-                  }
-
-                  
-                  jobdoc.ref.update({
-                    completedBreakDuration: jobCompletedBreakDuration
-                  })
-                } else {
-                 
-                }
-              })
-            } else {
-             
-            }
+     return shiftRef.get().then(function (shiftDoc) {
+        
+        var check = (shiftDoc.data().endTime < breakData.endTime)
+        console.log(check)
+        console.log(shiftDoc.data().endTime)
+        console.log(breakData.endTime)
+        if (check) {
+          console.log(check)
+          shiftRef.update({
+          
+            endTime: breakData.endTime
           })
-        })
+        } else if (shiftDoc.data().startTime > breakData.startTime) {
+          shiftRef.update({
 
+            startTime: breakData.startTime
+          })
+        }
+        
+      
       })
 
 
+      var jobId = breakData.jobId
+      shiftRef.collection("jobs").doc(jobId).get().then(function (jobdoc) {
+
+        if (jobdoc.data().endTime < breakData.endTime) {
+          shiftRef.update({
+
+            endTime: breakData.endTime
+          })
+        } else if (jobdoc.data().startTime > breakData.startTime) {
+          shiftRef.update({
+
+            startTime: breakData.startTime
+          })
+        }
+
+      })
+
+      callbackFunction();
+
+      return true;
     })
   })
   
