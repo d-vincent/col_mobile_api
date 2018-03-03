@@ -500,7 +500,7 @@ exports.startBreak = functions.https.onRequest((request, response) => {
                                     })
 
 
-                                
+
                                 console.log(jobId)
                                 if (jobId == null) {
                                   var docRef = firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").doc();
@@ -677,18 +677,18 @@ exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shift
         }else if (oldEndTime == null && newEndTime != null) {
             // this is break end
             TimeBreakClass.updateBreakDuration(breakRef)
-            
+
         } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
             //this is just an update, should update all duration
             TimeBreakClass.updateBreakDuration(breakRef, function () {
                 console.log("hi")
                 return true;
             })
-            setTimeout(function () { 
+            setTimeout(function () {
 
                 return true;
             }, 20000)
-            
+
         } else if (oldEndTime != null && newEndTime == null) {
             //this job end failure corrective update
         } else {// old endtime is null and still null,  jsut a generic update
@@ -697,14 +697,14 @@ exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shift
 })
 
 exports.newJob = functions.firestore.document('/users/{userID}/shift/{shiftID}/jobs/{jobID}')
-    .onCreate(event => { 
+    .onCreate(event => {
         var endTime = event.data.data().endTime;
         var newJobRef = event.data.ref;
         if (endTime == null) {
             //this is a job start
             TimeJobClass.verifyJobStart(newJobRef);
         } else {
-            
+
         }
     })
 
@@ -719,7 +719,7 @@ exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId
         var oldBreakDuration = event.data.previous.data().completedBreakDuration;
         if (oldBreakDuration == null && completedBreakDuration != null) {
 
-        } else if (oldDuration == null && newDuration != null) { 
+        } else if (oldDuration == null && newDuration != null) {
             //initial duration calculation
         }
         else if (oldEndTime == null && newEndTime != null) {
@@ -733,7 +733,7 @@ exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId
         } else if (oldEndTime != null && newEndTime == null) {
             //this job end failure corrective update
         } else if (oldEndTime == null && newEndTime == null){// old endtime is null and still null,  jsut a generic update
-            
+
         }
     })
 
@@ -761,9 +761,9 @@ exports.updateShift = functions.firestore
         var newDuration = event.data.data().duration;
         var completedBreakDuration = event.data.data().completedBreakDuration;
         var oldBreakDuration = event.data.previous.data().completedBreakDuration;
-        if (oldBreakDuration == null && completedBreakDuration != null) { 
+        if (oldBreakDuration == null && completedBreakDuration != null) {
 
-        }else if (oldDuration == null && newDuration != null) { 
+        }else if (oldDuration == null && newDuration != null) {
             //this is triggered by the clockout duration calculations and should be ignored
             console.log("Caught the 2nd trigger")
             return;
@@ -776,10 +776,51 @@ exports.updateShift = functions.firestore
     }else if (oldEndTime != null && newEndTime == null) {
         //this clockout failure corrective update
     }else if (oldEndTime == null && newEndTime == null){// old endtime is null and still null,  jsut a generic update
-           
+
         }
-    
-        
+
+
+});
+
+exports.shiftDeleted = functions.firestore
+  .document('/users/{userID}/shift/{shiftID}')
+    .onDelete(event => {
+
+    var firestore = admin.firestore();
+    var userID = event.params.userID;
+    var shiftID = event.params.shiftID;
+
+    var currentTime = new Date()
+    var deletedThisYearRef = firestore.collection("users/" + userID + "/deletedShifts/").doc(currentTime.getFullYear().toString());
+    var segmentID = currentTime.getMonth() < 6 ? "Jan-June" : "July-Dec";
+
+    var getDoc = deletedThisYearRef.get()
+    .then(doc => {
+        if (!doc.exists) {
+          deletedThisYearRef.set({
+              segmentID: [shiftID]
+            }).then(function () {
+              //created//prob need some err hand
+              return;
+          })
+        } else {
+          var deleted = []
+          if(doc.data.segmentID) {
+            deleted = document.data.segmentID
+          }
+          deleted.push(shiftID)
+          deletedThisYearRef.update({
+              segmentID: [shiftID]
+            }).then(function () {
+              //created//prob need some err hand
+              return;
+          })
+        }
+    })
+    .catch(err => {
+        console.log('Error getting document', err);
+    });
+    return;
 });
 
 
