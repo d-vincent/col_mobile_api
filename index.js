@@ -797,30 +797,36 @@ exports.shiftDeleted = functions.firestore
     var getDoc = deletedThisYearRef.get()
     .then(doc => {
         if (!doc.exists) {
-          deletedThisYearRef.set({
-              segmentID: [shiftID]
-            }).then(function () {
-              //created//prob need some err hand
-              return;
-          })
+          var data = {}
+          data[segmentID] = [shiftID]
+          deletedThisYearRef.set(data).then(function () {
+              console.log('creating new year bracket for the doc', shiftID);
+              return true;
+          }).catch(err=>{
+              console.log('Error deleting document in new record', err);
+              return false;
+          });
         } else {
           var deleted = []
-          if(doc.data.segmentID) {
-            deleted = document.data.segmentID
+          if(doc.get(segmentID)) {
+            deleted = doc.get(segmentID)
           }
           deleted.push(shiftID)
-          deletedThisYearRef.update({
-              segmentID: [shiftID]
-            }).then(function () {
-              //created//prob need some err hand
-              return;
-          })
+          var data = {}
+          data[segmentID] = deleted
+          deletedThisYearRef.update(data).then(function () {
+              console.log('deleted shift added to record', shiftID);
+              return true;
+          }).catch (err=>{
+            console.log('Error deleting document', err);
+          });
         }
     })
     .catch(err => {
         console.log('Error getting document', err);
+        return false;
     });
-    return;
+    return true;
 });
 
 
