@@ -792,7 +792,7 @@ exports.shiftDeleted = functions.firestore
 
     var currentTime = new Date()
     var deletedThisYearRef = firestore.collection("users/" + userID + "/deletedShifts/").doc(currentTime.getFullYear().toString());
-    var segmentID = currentTime.getMonth() < 6 ? "Jan-June" : "July-Dec";
+    var segmentID = (currentTime.getMonth() + 1).toString();
 
     var getDoc = deletedThisYearRef.get()
     .then(doc => {
