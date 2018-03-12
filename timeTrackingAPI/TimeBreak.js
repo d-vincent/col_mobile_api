@@ -1,5 +1,5 @@
 'use strict';
-
+let admin = require('firebase-admin');
 
 /**
  * returns a collection of openshift if there are anys
@@ -17,8 +17,8 @@ function verifyBreakStart (breakRef) {
       }
     } else if (openBreakIds.length > 1) {
       deleteBreak(breakRef);
-      
-    } 
+
+    }
   });
 }
 
@@ -65,9 +65,9 @@ function updateBreakDuration(breakRef, callbackFunction) {
       hours: hours
     }).then(function () {
 
-    
+
      return shiftRef.get().then(function (shiftDoc) {
-        
+
         var check = (shiftDoc.data().endTime < breakData.endTime)
         console.log(check)
         console.log(shiftDoc.data().endTime)
@@ -75,7 +75,7 @@ function updateBreakDuration(breakRef, callbackFunction) {
         if (check) {
           console.log(check)
           shiftRef.update({
-          
+
             endTime: breakData.endTime
           })
         } else if (shiftDoc.data().startTime > breakData.startTime) {
@@ -84,8 +84,8 @@ function updateBreakDuration(breakRef, callbackFunction) {
             startTime: breakData.startTime
           })
         }
-        
-      
+
+
       })
 
 
@@ -111,7 +111,7 @@ function updateBreakDuration(breakRef, callbackFunction) {
       return true;
     })
   })
-  
+
 }
 
 function deleteBreak(breakRef){
@@ -121,3 +121,42 @@ function deleteBreak(breakRef){
       console.error("Error removing invalid break: ", breakRef.id);
   });
 }
+
+
+exports.updateDeletedBreaks = updateDeletedBreaks
+function updateDeletedBreaks(userID,breakID) {
+  return new Promise((resolve, reject) => {
+    var firestore = admin.firestore();
+    var currentTime = new Date()
+    var deletedThisYearRef = firestore.collection("users/" + userID + "/deletedBreaks/")
+                              .doc(currentTime.getFullYear().toString());
+    var segmentID = (currentTime.getMonth() + 1).toString();
+    var getDoc = deletedThisYearRef.get().then(doc => {
+        var data = {}
+        if (!doc.exists) {
+          data[segmentID] = [breakID]
+          deletedThisYearRef.set(data).then(function () {
+              resolve('creating new year bracket for the break: '+ breakID);
+          }).catch(err=>{
+              reject('Error deleting break in new record: ' +err);
+          });
+        } else {
+          var deleted = []
+          if(doc.get(segmentID)) {
+            deleted = doc.get(segmentID)
+          }
+          deleted.push(breakID)
+          data[segmentID] = deleted
+          deletedThisYearRef.update(data).then(function () {
+              resolve('deleted break added to record: '+breakID);
+          }).catch (err=>{
+            reject('Error deleting breakID' +err);
+          });
+        }
+    })
+    .catch(err => {
+      reject('Error getting breakID' + err);
+    });
+  });
+
+};

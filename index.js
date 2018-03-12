@@ -696,6 +696,22 @@ exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shift
         }
 })
 
+exports.breakDeleted = functions.firestore
+  .document('/users/{userID}/shift/{shiftID}/breaks/{breakID}')
+  .onDelete(event => {
+  var userID = event.params.userID;
+  var breakID = event.params.breakID;
+  TimeBreakClass.updateDeletedBreaks(userID,breakID).then(function(msg){
+    console.log("Success:" + msg);
+    return true;
+  })
+  .catch(function(err){
+    console.log("Failure: " +  err);
+    return false
+  })
+  return true;
+});
+
 exports.newJob = functions.firestore.document('/users/{userID}/shift/{shiftID}/jobs/{jobID}')
     .onCreate(event => {
         var endTime = event.data.data().endTime;
@@ -736,6 +752,22 @@ exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId
 
         }
     })
+
+exports.jobDeleted = functions.firestore
+  .document('/users/{userID}/shift/{shiftID}/jobs/{jobID}')
+  .onDelete(event => {
+  var userID = event.params.userID;
+  var jobID = event.params.jobID;
+  TimeJobClass.updateDeletedJobs(userID,jobID).then(function(msg){
+    console.log("Success:" + msg);
+    return true;
+  })
+  .catch(function(err){
+    console.log("Failure: " +  err);
+    return false
+  })
+  return true;
+});
 
 exports.newShift = functions.firestore
   .document('/users/{userID}/shift/{shiftID}')
@@ -782,23 +814,21 @@ exports.updateShift = functions.firestore
 
 });
 
- exports.shiftDeleted = functions.firestore
+exports.shiftDeleted = functions.firestore
   .document('/users/{userID}/shift/{shiftID}')
   .onDelete(event => {
-
-  var firestore = admin.firestore();
   var userID = event.params.userID;
   var shiftID = event.params.shiftID;
   TimeSheetClass.updateDeletedShifts(userID,shiftID).then(function(msg){
-   console.log("Success:" + msg);
-   return true;
+    console.log("Success:" + msg);
+    return true;
   })
   .catch(function(err){
-   console.log("Failure: " +  err);
-   return false
+    console.log("Failure: " +  err);
+    return false
   })
   return true;
- });
+});
 
 
 //triggers eachtime a new message is created
