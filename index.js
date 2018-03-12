@@ -782,52 +782,23 @@ exports.updateShift = functions.firestore
 
 });
 
-exports.shiftDeleted = functions.firestore
+ exports.shiftDeleted = functions.firestore
   .document('/users/{userID}/shift/{shiftID}')
-    .onDelete(event => {
+  .onDelete(event => {
 
-    var firestore = admin.firestore();
-    var userID = event.params.userID;
-    var shiftID = event.params.shiftID;
-
-    var currentTime = new Date()
-    var deletedThisYearRef = firestore.collection("users/" + userID + "/deletedShifts/").doc(currentTime.getFullYear().toString());
-    var segmentID = (currentTime.getMonth() + 1).toString();
-
-    var getDoc = deletedThisYearRef.get()
-    .then(doc => {
-        if (!doc.exists) {
-          var data = {}
-          data[segmentID] = [shiftID]
-          deletedThisYearRef.set(data).then(function () {
-              console.log('creating new year bracket for the doc', shiftID);
-              return true;
-          }).catch(err=>{
-              console.log('Error deleting document in new record', err);
-              return false;
-          });
-        } else {
-          var deleted = []
-          if(doc.get(segmentID)) {
-            deleted = doc.get(segmentID)
-          }
-          deleted.push(shiftID)
-          var data = {}
-          data[segmentID] = deleted
-          deletedThisYearRef.update(data).then(function () {
-              console.log('deleted shift added to record', shiftID);
-              return true;
-          }).catch (err=>{
-            console.log('Error deleting document', err);
-          });
-        }
-    })
-    .catch(err => {
-        console.log('Error getting document', err);
-        return false;
-    });
-    return true;
-});
+  var firestore = admin.firestore();
+  var userID = event.params.userID;
+  var shiftID = event.params.shiftID;
+  TimeSheetClass.updateDeletedShifts(userID,shiftID).then(function(msg){
+   console.log("Success:" + msg);
+   return true;
+  })
+  .catch(function(err){
+   console.log("Failure: " +  err);
+   return false
+  })
+  return true;
+ });
 
 
 //triggers eachtime a new message is created

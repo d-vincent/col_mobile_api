@@ -1,9 +1,6 @@
-
-
-
-
 'use strict';
 
+let admin = require('firebase-admin');
 
 
 exports.verifyClockIn = function(shiftRef){
@@ -29,7 +26,7 @@ exports.verifyClockIn = function(shiftRef){
  */
 exports.verifyClockOut = function(shiftRef, oldShiftData ){
   console.log("clockOut triggered");
- 
+
   shiftRef.collection("breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
 
     console.log("Checked for breaks")
@@ -39,7 +36,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
         if (latestBreakDoc.data().endTime == null) {
           shiftRef.shiftRef(oldShiftData)
           return;
-          
+
         } else {
 
           shiftRef.collection("jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
@@ -49,7 +46,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
                 if (latestJobDoc.data().endTime == null) {
                   shiftRef.shiftRef(oldShiftData)
                   return;
-                  
+
                 } else {
 
                   updateShiftDuration(shiftRef)
@@ -72,7 +69,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
             if (latestJobDoc.data().endTime == null) {
               shiftRef.shiftRef(oldShiftData)
               return;
-              
+
             } else {
 
               updateShiftDuration(shiftRef)
@@ -125,7 +122,7 @@ function updateShiftDuration(shiftRef, jobDoc) {
     }
     if (jobDoc != null && shiftDoc.data().endTime < jobDoc.data().endTime) {
       shiftRef.update({ endTime: jobDoc.data().endTime })
-    } else if (jobDoc != null && jobDoc.data().startTime < shiftDoc.data().startTime) { 
+    } else if (jobDoc != null && jobDoc.data().startTime < shiftDoc.data().startTime) {
 
       shiftRef.update({
         startTime: jobDoc.data().startTime
@@ -133,7 +130,7 @@ function updateShiftDuration(shiftRef, jobDoc) {
     }
      else {
       duration = (shiftDoc.data().endTime - shiftDoc.data().startTime)
-  
+
       shiftRef.collection("breaks").get().then(function (shiftBreaks) {
 
         shiftBreaks.forEach(function (shiftBreakDoc) {
@@ -147,13 +144,13 @@ function updateShiftDuration(shiftRef, jobDoc) {
 
             generalDuration -= shiftJobDoc.data().duration
 
-            if (shiftDoc.data().endTime < shiftJobDoc.data().endTime) { 
+            if (shiftDoc.data().endTime < shiftJobDoc.data().endTime) {
               shiftJobDoc.ref.update({
                 endTime: shiftDoc.data().endTime
               })
             }
 
-            if (shiftDoc.data().startTime > shiftJobDoc.data().startTime) { 
+            if (shiftDoc.data().startTime > shiftJobDoc.data().startTime) {
               shiftJobDoc.ref.update({
                 startTime: shiftDoc.data().startTime
               })
@@ -183,7 +180,7 @@ function updateShiftDuration(shiftRef, jobDoc) {
       })
     }
     })
-  
+
 
 }
 
@@ -194,3 +191,44 @@ function deleteShift(shiftRef){
       console.error("Error removing invalid shift: ", shiftRef.id);
   });
 }
+
+
+exports.updateDeletedShifts = updateDeletedShifts
+function updateDeletedShifts(userID,shiftID) {
+  return new Promise(
+    (resolve, reject) => {
+      var firestore = admin.firestore();
+      var currentTime = new Date()
+      var deletedThisYearRef = firestore.collection("users/" + userID + "/deletedShifts/")
+                                .doc(currentTime.getFullYear().toString());
+      var segmentID = (currentTime.getMonth() + 1).toString();
+      var getDoc = deletedThisYearRef.get().then(doc => {
+          var data = {}
+          if (!doc.exists) {
+            data[segmentID] = [shiftID]
+            deletedThisYearRef.set(data).then(function () {
+                resolve('creating new year bracket for the doc: '+ shiftID);
+            }).catch(err=>{
+                reject('Error deleting document in new record: ' +err);
+            });
+          } else {
+            var deleted = []
+            if(doc.get(segmentID)) {
+              deleted = doc.get(segmentID)
+            }
+            deleted.push(shiftID)
+            data[segmentID] = deleted
+            deletedThisYearRef.update(data).then(function () {
+                resolve('deleted shift added to record: '+shiftID);
+            }).catch (err=>{
+              reject('Error deleting document' +err);
+            });
+          }
+      })
+      .catch(err => {
+        reject('Error getting document' + err);
+      });
+    }
+  );
+
+};
