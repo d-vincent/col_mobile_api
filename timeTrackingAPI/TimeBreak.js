@@ -46,7 +46,7 @@ function checkForOpenBreaks (breaksRef,callBack) {
 
 //calculates duration for
 exports.updateBreakDuration = updateBreakDuration
-function updateBreakDuration(breakRef, callbackFunction) {
+function updateBreakDuration(breakRef, oldData) {
   console.log("updating break duration:" + breakRef.id);
   var shiftRef = breakRef.parent.parent
 
@@ -54,11 +54,19 @@ function updateBreakDuration(breakRef, callbackFunction) {
     var breakData = updatedBreak.data()
     console.log("we got the break")
     var breakDuration = (breakData.endTime - breakData.startTime)
+    if (oldData != null) { 
+      var oldBreakDuration = oldData.endTime - oldData.startTime
+    }
 
     var seconds = breakDuration / 1000
     var minutes = seconds / 60
     var hours = minutes / 60
     hours = (hours.toFixed(2)) / 1
+  
+    if (oldData != null && oldBreakDuration != breakDuration) { 
+      var durationDifference = breakDuration - oldBreakDuration;
+      console.log(durationDifference)
+    }
 
     return breakRef.update({
       duration: breakDuration,
@@ -66,25 +74,65 @@ function updateBreakDuration(breakRef, callbackFunction) {
     }).then(function () {
 
     
-     return shiftRef.get().then(function (shiftDoc) {
+    shiftRef.get().then(function (shiftDoc) {
         
+       var completedBreakDuration = shiftDoc.data().completedBreakDuration; 
         var check = (shiftDoc.data().endTime < breakData.endTime)
         console.log(check)
         console.log(shiftDoc.data().endTime)
         console.log(breakData.endTime)
-        if (check) {
-          console.log(check)
-          shiftRef.update({
+       if (check) {
+         if (durationDifference == null) {
+           shiftRef.update({
           
-            endTime: breakData.endTime
-          })
-        } else if (shiftDoc.data().startTime > breakData.startTime) {
-          shiftRef.update({
+             endTime: breakData.endTime
+           })
+         } else if (completedBreakDuration != null) {
+           var newCompletedBreak = completedBreakDuration + durationDifference
+           console.log(newCompletedBreak)
+           shiftRef.update({
 
-            startTime: breakData.startTime
-          })
-        }
-        
+             completedBreakDuration: newCompletedBreak,
+             endTime: breakData.endTime
+           })
+         } else {
+           shiftRef.update({
+
+             endTime: breakData.endTime
+           })
+         }
+       } else if (shiftDoc.data().startTime > breakData.startTime) {
+         if (durationDifference == null) {
+           shiftRef.update({
+
+             startTime: breakData.startTime
+           })
+         } else if (completedBreakDuration != null) {
+           var newCompletedBreak = completedBreakDuration + durationDifference
+           console.log(newCompletedBreak) 
+           shiftRef.update({
+
+            
+             completedBreakDuration: newCompletedBreak,
+             startTime: breakData.startTime
+           })
+         } else {
+           shiftRef.update({
+
+             startTime: breakData.startTime
+           })
+         }
+       } else { 
+         if (durationDifference != null) { 
+           var newCompletedBreak = completedBreakDuration + durationDifference
+           console.log(newCompletedBreak) 
+           shiftRef.update({
+
+             completedBreakDuration: newCompletedBreak
+           })
+         }
+       }
+      
       
       })
 
@@ -92,21 +140,61 @@ function updateBreakDuration(breakRef, callbackFunction) {
       var jobId = breakData.jobId
       shiftRef.collection("jobs").doc(jobId).get().then(function (jobdoc) {
 
+        var completedBreakDurationJob = jobdoc.data().completedBreakDuration;
+
+
         if (jobdoc.data().endTime < breakData.endTime) {
-          shiftRef.update({
+          if (durationDifference == null) {
+            jobdoc.ref.update({
 
-            endTime: breakData.endTime
-          })
+              endTime: breakData.endTime
+            })
+          } else if (completedBreakDurationJob != null) {
+            var newCompletedBreakDuration = completedBreakDurationJob + durationDifference
+            jobdoc.ref.update({
+
+              completedBreakDuration: newCompletedBreakDuration,
+              endTime: breakData.endTime
+            })
+          } else {
+            jobdoc.ref.update({
+
+              endTime: breakData.endTime
+            })
+          }
+         
         } else if (jobdoc.data().startTime > breakData.startTime) {
-          shiftRef.update({
+          if (durationDifference == null) {
+            jobdoc.ref.update({
 
-            startTime: breakData.startTime
-          })
+              startTime: breakData.startTime
+            })
+          } else if (completedBreakDurationJob != null) {
+
+            var newCompletedBreakDuration = completedBreakDurationJob + durationDifference
+            jobdoc.ref.update({
+
+              completedBreakDuration: newCompletedBreakDuration,
+              startTime: breakData.startTime
+            })
+          } else {
+            jobdoc.ref.update({
+
+              startTime: breakData.startTime
+            })
+          }
+          
+        } else { 
+          if (durationDifference != null) {
+            var newCompletedBreak = completedBreakDurationJob + durationDifference
+            jobdoc.ref.update({
+
+              completedBreakDuration: newCompletedBreak
+            })
+          }
         }
 
       })
-
-      callbackFunction();
 
       return true;
     })
