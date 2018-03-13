@@ -45,7 +45,6 @@ exports.updateBreakDuration = updateBreakDuration
 function updateBreakDuration(breakRef, oldData) {
   console.log("updating break duration:" + breakRef.id);
   var shiftRef = breakRef.parent.parent
-
   breakRef.get().then(function (updatedBreak) {
     var breakData = updatedBreak.data()
     console.log("we got the break")
@@ -68,75 +67,64 @@ function updateBreakDuration(breakRef, oldData) {
       duration: breakDuration,
       hours: hours
     }).then(function () {
-
-
-    shiftRef.get().then(function (shiftDoc) {
-
-      var completedBreakDuration = shiftDoc.data().completedBreakDuration;
-      var check = (shiftDoc.data().endTime < breakData.endTime && shiftDoc.data().endTime != null)
-      console.log(check)
-      console.log(shiftDoc.data().endTime)
-      console.log(breakData.endTime)
-      if (check) {
-       if (durationDifference == null) {
-         shiftRef.update({
-
-           endTime: breakData.endTime
-         })
-       } else if (completedBreakDuration != null) {
-         var newCompletedBreak = completedBreakDuration + durationDifference
-         console.log(newCompletedBreak)
-         shiftRef.update({
-
-           completedBreakDuration: newCompletedBreak,
-           endTime: breakData.endTime
-         })
-       } else {
-         shiftRef.update({
-
-           endTime: breakData.endTime
-         })
-       }
-      } else if (shiftDoc.data().startTime > breakData.startTime && shiftDoc.data().startTime != null) {
+      shiftRef.get().then(function (shiftDoc) {
+        var completedBreakDuration = shiftDoc.data().completedBreakDuration;
+        var check = (shiftDoc.data().endTime < breakData.endTime && shiftDoc.data().endTime != null)
+        console.log(check)
+        console.log(shiftDoc.data().endTime)
+        console.log(breakData.endTime)
+        if (check) {
          if (durationDifference == null) {
            shiftRef.update({
 
-             startTime: breakData.startTime
+             endTime: breakData.endTime
            })
          } else if (completedBreakDuration != null) {
            var newCompletedBreak = completedBreakDuration + durationDifference
            console.log(newCompletedBreak)
            shiftRef.update({
 
-
              completedBreakDuration: newCompletedBreak,
-             startTime: breakData.startTime
+             endTime: breakData.endTime
            })
          } else {
            shiftRef.update({
 
+             endTime: breakData.endTime
+           })
+         }
+        } else if (shiftDoc.data().startTime > breakData.startTime && shiftDoc.data().startTime != null) {
+            if (durationDifference == null) {
+              shiftRef.update({
+
+                startTime: breakData.startTime
+              })
+            } else if (completedBreakDuration != null) {
+                var newCompletedBreak = completedBreakDuration + durationDifference
+                console.log(newCompletedBreak)
+                shiftRef.update({
+                  completedBreakDuration: newCompletedBreak,
+                  startTime: breakData.startTime
+                })
+              } else {
+           shiftRef.update({
+
              startTime: breakData.startTime
            })
          }
-       } else {
-         if (durationDifference != null) {
-           var newCompletedBreak = completedBreakDuration + durationDifference
-           console.log(newCompletedBreak)
-           shiftRef.update({
-
-             completedBreakDuration: newCompletedBreak
-           })
-         }
-       }
+          } else {
+            if (durationDifference != null) {
+              var newCompletedBreak = completedBreakDuration + durationDifference
+              console.log(newCompletedBreak)
+              shiftRef.update({
+                completedBreakDuration: newCompletedBreak
+              })
+            }
+          }
       })
-
-
       var jobId = breakData.jobId
       shiftRef.collection("jobs").doc(jobId).get().then(function (jobdoc) {
-
         var completedBreakDurationJob = jobdoc.data().completedBreakDuration;
-
-
         if (jobdoc.data().endTime < breakData.endTime && jobdoc.data().endTime != null) {
           if (durationDifference == null) {
             jobdoc.ref.update({
@@ -173,16 +161,13 @@ function updateBreakDuration(breakRef, oldData) {
             })
           } else {
             jobdoc.ref.update({
-
               startTime: breakData.startTime
             })
           }
-
         } else {
           if (durationDifference != null) {
             var newCompletedBreak = completedBreakDurationJob + durationDifference
             jobdoc.ref.update({
-
               completedBreakDuration: newCompletedBreak
             })
           }
