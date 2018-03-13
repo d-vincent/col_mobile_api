@@ -1,7 +1,6 @@
-
-
 'use strict';
 
+let admin = require('firebase-admin');
 
 
 exports.verifyClockIn = function(shiftRef){
@@ -27,7 +26,7 @@ exports.verifyClockIn = function(shiftRef){
  */
 exports.verifyClockOut = function(shiftRef, oldShiftData ){
   console.log("clockOut triggered");
- 
+
   shiftRef.collection("breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
 
     console.log("Checked for breaks")
@@ -37,7 +36,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
         if (latestBreakDoc.data().endTime == null) {
           shiftRef.shiftRef(oldShiftData)
           return;
-          
+
         } else {
 
           shiftRef.collection("jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
@@ -47,7 +46,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
                 if (latestJobDoc.data().endTime == null) {
                   shiftRef.shiftRef(oldShiftData)
                   return;
-                  
+
                 } else {
 
                   updateShiftDuration(shiftRef)
@@ -70,7 +69,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
             if (latestJobDoc.data().endTime == null) {
               shiftRef.shiftRef(oldShiftData)
               return;
-              
+
             } else {
 
               updateShiftDuration(shiftRef)
@@ -112,7 +111,7 @@ function checkForOpenShifts (shiftsRef,callBack) {
 
 //calculates duration for
 exports.updateShiftDuration = updateShiftDuration
-function updateShiftDuration(shiftRef){
+function updateShiftDuration(shiftRef, jobDoc) {
   console.log("updating shift:" + shiftRef.id);
   shiftRef.get().then(function (shiftDoc) {
 
@@ -120,44 +119,69 @@ function updateShiftDuration(shiftRef){
     if (shiftDoc.data().endTime == null) {
       duration = null;
       return;
-    } 
-    duration = (shiftDoc.data().endTime - shiftDoc.data().startTime)
-  
-    shiftRef.collection("breaks").get().then(function (shiftBreaks) {
+    }
+    if (jobDoc != null && shiftDoc.data().endTime < jobDoc.data().endTime) {
+      shiftRef.update({ endTime: jobDoc.data().endTime })
+    } else if (jobDoc != null && jobDoc.data().startTime < shiftDoc.data().startTime) {
 
-      shiftBreaks.forEach(function (shiftBreakDoc) {
-
-        duration -= shiftBreakDoc.data().duration
+      shiftRef.update({
+        startTime: jobDoc.data().startTime
       })
-      shiftRef.collection("jobs").get().then(function (shiftJobs) {
+    }
+     else {
+      duration = (shiftDoc.data().endTime - shiftDoc.data().startTime)
 
-        var generalDuration = duration
-        shiftJobs.forEach(function (shiftJobDoc) {
-          generalDuration -= shiftJobDoc.data().duration
+      shiftRef.collection("breaks").get().then(function (shiftBreaks) {
+
+        shiftBreaks.forEach(function (shiftBreakDoc) {
+
+          duration -= shiftBreakDoc.data().duration
         })
+        shiftRef.collection("jobs").get().then(function (shiftJobs) {
 
-        var seconds = duration / 1000
-        var minutes = seconds / 60
-        var hours = minutes / 60
-        hours = hours.toFixed(2)
+          var generalDuration = duration
+          shiftJobs.forEach(function (shiftJobDoc) {
 
-        var generalSeconds = generalDuration / 1000
-        var generalMinutes = generalSeconds / 60
-        var generalHours = generalMinutes / 60
-        generalHours = generalHours.toFixed(2)
+            generalDuration -= shiftJobDoc.data().duration
 
-        shiftRef.update({
-          duration: duration,
-          generalDuration: generalDuration,
-          hours: hours,
-          generalHours, generalHours
-        }).then(function () { 
-          return;
+            if (shiftDoc.data().endTime < shiftJobDoc.data().endTime) {
+              shiftJobDoc.ref.update({
+                endTime: shiftDoc.data().endTime
+              })
+            }
+
+            if (shiftDoc.data().startTime > shiftJobDoc.data().startTime) {
+              shiftJobDoc.ref.update({
+                startTime: shiftDoc.data().startTime
+              })
+            }
+
+          })
+
+          var seconds = duration / 1000
+          var minutes = seconds / 60
+          var hours = minutes / 60
+          hours = (hours.toFixed(2)) / 1
+
+          var generalSeconds = generalDuration / 1000
+          var generalMinutes = generalSeconds / 60
+          var generalHours = generalMinutes / 60
+          generalHours = (generalHours.toFixed(2)) / 1
+
+          shiftRef.update({
+            duration: duration,
+            generalDuration: generalDuration,
+            hours: hours,
+            generalHours, generalHours
+          }).then(function () {
+            return;
+          })
         })
       })
+    }
     })
-    })
-  
+
+
 }
 
 function deleteShift(shiftRef){
@@ -167,3 +191,44 @@ function deleteShift(shiftRef){
       console.error("Error removing invalid shift: ", shiftRef.id);
   });
 }
+
+
+exports.updateDeletedShifts = updateDeletedShifts
+function updateDeletedShifts(userID,shiftID) {
+  return new Promise(
+    (resolve, reject) => {
+      var firestore = admin.firestore();
+      var currentTime = new Date()
+      var deletedThisYearRef = firestore.collection("users/" + userID + "/deletedShifts/")
+                                .doc(currentTime.getFullYear().toString());
+      var segmentID = (currentTime.getMonth() + 1).toString();
+      var getDoc = deletedThisYearRef.get().then(doc => {
+          var data = {}
+          if (!doc.exists) {
+            data[segmentID] = [shiftID]
+            deletedThisYearRef.set(data).then(function () {
+                resolve('creating new year bracket for the doc: '+ shiftID);
+            }).catch(err=>{
+                reject('Error deleting document in new record: ' +err);
+            });
+          } else {
+            var deleted = []
+            if(doc.get(segmentID)) {
+              deleted = doc.get(segmentID)
+            }
+            deleted.push(shiftID)
+            data[segmentID] = deleted
+            deletedThisYearRef.update(data).then(function () {
+                resolve('deleted shift added to record: '+shiftID);
+            }).catch (err=>{
+              reject('Error deleting document' +err);
+            });
+          }
+      })
+      .catch(err => {
+        reject('Error getting document' + err);
+      });
+    }
+  );
+
+};

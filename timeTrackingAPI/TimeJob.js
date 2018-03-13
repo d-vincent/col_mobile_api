@@ -1,12 +1,12 @@
 'use strict';
-
+let admin = require('firebase-admin');
 
 const TimeSheetClass = require('./TimeSheet');
 
 exports.verifyJobStart = function (jobRef) {
   checkForOpenJobs(jobRef.parent, function (openJobIds) {
     if (openJobIds.length == 1) { //the new job should the only open job
-      if (jobRef.id != openShiftIDs[0]) {
+      if (jobRef.id != openJobIds[0]) {
         deleteJob(jobRef);
       } else {
         console.log("jobStartSuccessful");
@@ -20,22 +20,23 @@ exports.verifyJobStart = function (jobRef) {
 
 exports.verifyJobEnd = function (jobRef, oldJobData) {
   var shiftRef = jobRef.parent.parent
+  updateJobDuration(shiftRef, jobRef)
 
-  shiftRef.collection("breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
+  // shiftRef.collection("breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
 
-    if (breakCollection.size != 0) {
-      breakCollection.forEach(function (latestBreakDoc) {
-        if (latestBreakDoc.data().endTime == null) {
-          response.status(201).json({ error: "user is on break,  please end before ending the job" });
-        } else {
-          updateJobDuration(shiftRef, jobRef)
-        }
-      })
-    } else {
-      
-      updateJobDuration(shiftRef, jobRef)
-    }
-  })
+  //   if (breakCollection.size != 0) {
+  //     breakCollection.forEach(function (latestBreakDoc) {
+  //       if (latestBreakDoc.data().endTime == null) {
+  //         response.status(201).json({ error: "user is on break,  please end before ending the job" });
+  //       } else {
+  //         updateJobDuration(shiftRef, jobRef)
+  //       }
+  //     })
+  //   } else {
+
+  //     updateJobDuration(shiftRef, jobRef)
+  //   }
+  // })
 }
 
 
@@ -70,7 +71,8 @@ exports.start = function (dbRef, conId, shiftID, startTime, location, callBack) 
 }
 
 //returns a collection of OpenJobs if there are any
-exports.checkForOpenJobs = function (jobsRef, callBack) {
+exports.checkForOpenJobs = checkForOpenJobs
+function checkForOpenJobs(jobsRef, callBack) {
   var openJobIDs = []
   jobsRef.where('endTime', '==', null).get()
     .then(snapshot => {
@@ -98,8 +100,10 @@ function updateJobDuration(shiftRef, jobRef) {
         totalBreakDuration += (breakForJob.data().endTime - breakForJob.data().startTime)
       })
     }
-    
-    jobRef.get().then(function (jobDoc) { 
+
+
+    jobRef.get().then(function (jobDoc) {
+      console.log("got the job")
       var duration = jobDoc.data().endTime - jobDoc.data().startTime
       duration -= totalBreakDuration
       var seconds = duration / 1000
@@ -107,17 +111,18 @@ function updateJobDuration(shiftRef, jobRef) {
       var minutes = seconds / 60
 
       var hours = minutes / 60
-      hours = hours.toFixed(2)
+      hours = (hours.toFixed(2))/1
+
 
       jobRef.update({
         duration: duration,
         hours: hours
-      }).then(function () { 
+      }).then(function () {
 
-        TimeSheetClass.updateShiftDuration(shiftRef);
+        TimeSheetClass.updateShiftDuration(shiftRef, jobDoc);
       })
     })
-    
+
 
   })
 
@@ -130,3 +135,42 @@ function deleteJob(jobRef) {
     console.error("Error removing invalid job: ", jobRef.id);
   });
 }
+
+
+exports.updateDeletedJobs = updateDeletedJobs
+function updateDeletedJobs(userID,jobID) {
+  return new Promise((resolve, reject) => {
+    var firestore = admin.firestore();
+    var currentTime = new Date()
+    var deletedThisYearRef = firestore.collection("users/" + userID + "/deletedJobs/")
+                              .doc(currentTime.getFullYear().toString());
+    var segmentID = (currentTime.getMonth() + 1).toString();
+    var getDoc = deletedThisYearRef.get().then(doc => {
+        var data = {}
+        if (!doc.exists) {
+          data[segmentID] = [jobID]
+          deletedThisYearRef.set(data).then(function () {
+              resolve('creating new year bracket for the job: '+ jobID);
+          }).catch(err=>{
+              reject('Error deleting job in new record: ' +err);
+          });
+        } else {
+          var deleted = []
+          if(doc.get(segmentID)) {
+            deleted = doc.get(segmentID)
+          }
+          deleted.push(jobID)
+          data[segmentID] = deleted
+          deletedThisYearRef.update(data).then(function () {
+              resolve('deleted job added to record: '+jobID);
+          }).catch (err=>{
+            reject('Error deleting jobID' +err);
+          });
+        }
+    })
+    .catch(err => {
+      reject('Error getting jobID' + err);
+    });
+  });
+
+};
