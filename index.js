@@ -27,139 +27,7 @@ init()
 // // Create and Deploy Your First Cloud Functions
 // // https://firebase.google.com/docs/functions/write-firebase-functions
 //
-exports.helloWorld = functions.https.onRequest((request, response) => {
-    response.send("Hello from Firebase!");
-});
 
-exports.clockIn = functions.https.onRequest((request, response) => {
-
-    var conId = request.body.conId
-    var location = request.body.location
-
-    var firestore = admin.firestore();
-
-    firestore.collection("users/" + conId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
-        console.log(shiftCollection)
-        console.log(shiftCollection.size)
-
-        if (shiftCollection.size != 0) {
-            console.log("collection exists")
-            shiftCollection.forEach(function (shiftWithNewestStartDate) {
-                console.log(shiftWithNewestStartDate.data().endTime)
-                if (shiftWithNewestStartDate.data().endTime == null) {
-                    response.status(201)
-                    console.log("There is already an open shift")
-                    response.send("There is already an open shift")
-                } else {
-
-                    var docRef = firestore.collection("users/" + conId + "/shift").doc();
-                    var docId = docRef.id
-                    docRef.set({
-                        startTime: admin.firestore.FieldValue.serverTimestamp(),
-                        startLocation: location,
-                        endTime: null
-                    }).then(function () {
-
-                        response.json({ID:docId });
-                    })
-                }
-            })
-        } else {
-
-            var docRef = firestore.collection("users/" + conId + "/shift").doc();
-            var docId = docRef.id
-            docRef.set({
-                startTime: admin.firestore.FieldValue.serverTimestamp(),
-                startLocation: location,
-                endTime: null
-            }).then(function () {
-
-                response.json({ID:docId });
-            })
-
-            // firestore.collection("users/" + conId + "/shift").add({
-            //     startTime: admin.firestore.FieldValue.serverTimestamp(),
-            //     startLocation: location
-            // }).then(function () {
-            //     response.end("Successful clock in");
-            // })
-        }
-    })
-})
-
-exports.clockOut = functions.https.onRequest((request, response) => {
-
-    var firestore = admin.firestore();
-    var contactId = request.body.conId
-    var location = request.body.location
-
-    firestore.collection("users/" + contactId + "/shift").orderBy("startTime", "desc").limit(1).get().then(function (shiftCollection) {
-        if (shiftCollection.size != 0) {
-
-            shiftCollection.forEach(function (latestShiftDoc) {
-                if (latestShiftDoc.data().endTime != null) {
-                    response.status(201)
-                    response.statusMessage = "Hello"
-                    console.log("There is no open shift")
-                    response.end("There is no open shift")
-                } else {
-                    var latestShiftRef = firestore.doc("users/" + contactId + "/shift/" + latestShiftDoc.id)
-                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/breaks").orderBy("startTime", "desc").limit(1).get().then(function (breakCollection) {
-
-                        if (breakCollection.size != 0) {
-
-                            breakCollection.forEach(function (latestBreakDoc) {
-                                if (latestBreakDoc.data().endTime == null) {
-                                    response.status(201).json({error:"User is on break"})
-                                } else {
-
-                                    firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
-                                        if (jobsCollection.size != 0) {
-
-                                            jobsCollection.forEach(function (latestJobDoc) {
-                                                if (latestJobDoc.data().endTime == null) {
-                                                    response.status(201).json({error:"User is on job"})
-                                                } else {
-
-                                                    performClockOut(latestShiftRef, location, contactId, response)
-                                                }
-                                            })
-
-                                        } else {
-                                            performClockOut(latestShiftRef, location, contactId, response)
-                                        }
-                                    })
-                                }
-                            })
-                        } else {
-                            firestore.collection("users/" + contactId + "/shift/" + latestShiftDoc.id + "/jobs").orderBy("startTime", "desc").limit(1).get().then(function (jobsCollection) {
-                                if (jobsCollection.size != 0) {
-
-                                    console.log("found a job")
-                                    jobsCollection.forEach(function (latestJobDoc) {
-                                        if (latestJobDoc.data().endTime == null) {
-                                            response.status(201).json({error:"User is on job"})
-                                        } else {
-
-                                            performClockOut(latestShiftRef, location, contactId, response)
-                                        }
-                                    })
-
-                                } else {
-                                    performClockOut(latestShiftRef, location, contactId, response)
-                                }
-                            })
-                        }
-                    })
-                }
-            })
-        } else {
-            response.status(201)
-            response.end("There is no open shift")
-        }
-    })
-
-})
 
 function performClockOut(latestShiftRef, location, contactId, response) {
 
@@ -220,6 +88,7 @@ function performClockOut(latestShiftRef, location, contactId, response) {
 
 
 
+<<<<<<< HEAD
 
 exports.startJob = functions.https.onRequest((request, response) => {
 
@@ -652,6 +521,8 @@ exports.endBreak = functions.https.onRequest((request, response) => {
     })
 })
 
+=======
+>>>>>>> 8d58a93fe156d6d409514ca83fc16b4e275d000a
 exports.newBreak = functions.firestore.document('/users/{userID}/shift/{shiftID}/breaks/{breakID}')
     .onCreate(event => {
         var endTime = event.data.data().endTime;
@@ -665,8 +536,11 @@ exports.newBreak = functions.firestore.document('/users/{userID}/shift/{shiftID}
     })
 exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shiftID}/breaks/{breakID}")
     .onUpdate(event => {
+        var oldData = event.data.previous.data();
         var newEndTime = event.data.data().endTime;
         var oldEndTime = event.data.previous.data().endTime;
+        var oldStartTime = event.data.previous.data().startTime;
+        var newStartTime = event.data.data().startTime;
         var breakRef = event.data.ref;
         var oldDuration = event.data.previous.data().duration;
         var newDuration = event.data.data().duration;
@@ -680,6 +554,7 @@ exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shift
 
         } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
             //this is just an update, should update all duration
+<<<<<<< HEAD
             TimeBreakClass.updateBreakDuration(breakRef, function () {
                 console.log("hi")
                 return true;
@@ -689,10 +564,15 @@ exports.updateBreak = functions.firestore.document("/users/{userID}/shift/{shift
                 return true;
             }, 20000)
 
+=======
+            TimeBreakClass.updateBreakDuration(breakRef, oldData)
+           
+            
+>>>>>>> 8d58a93fe156d6d409514ca83fc16b4e275d000a
         } else if (oldEndTime != null && newEndTime == null) {
             //this job end failure corrective update
-        } else {// old endtime is null and still null,  jsut a generic update
-            TimeJobClass.updateBreakDuration (breakRef)
+        } else if (oldStartTime != null && newStartTime != null && newStartTime != oldStartTime){// old endtime is null and still null,  jsut a generic update
+            TimeJobClass.updateBreakDuration (breakRef, oldData)
         }
 })
 
@@ -730,7 +610,7 @@ exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId
         var oldEndTime = event.data.previous.data().endTime;
         var jobRef = event.data.ref;
         var oldDuration = event.data.previous.data().duration;
-        var newDuration = event.data.previous.data().duration;
+        var newDuration = event.data.data().duration;
         var completedBreakDuration = event.data.data().completedBreakDuration;
         var oldBreakDuration = event.data.previous.data().completedBreakDuration;
         if (oldBreakDuration == null && completedBreakDuration != null) {
@@ -748,8 +628,13 @@ exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId
             TimeJobClass.updateJobDuration(shiftRef,jobRef)
         } else if (oldEndTime != null && newEndTime == null) {
             //this job end failure corrective update
+<<<<<<< HEAD
         } else if (oldEndTime == null && newEndTime == null){// old endtime is null and still null,  jsut a generic update
 
+=======
+        } else if (newStartTime == oldStartTime && newEndTime == oldEndTime && completedBreakDuration != oldBreakDuration){// old endtime is null and still null,  jsut a generic update
+            TimeJobClass.updateJobDuration(shiftRef, jobRef)
+>>>>>>> 8d58a93fe156d6d409514ca83fc16b4e275d000a
         }
     })
 
