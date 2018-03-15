@@ -34,7 +34,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
 
       breakCollection.forEach(function (latestBreakDoc) {
         if (latestBreakDoc.data().endTime == null) {
-          shiftRef.shiftRef(oldShiftData)
+          shiftRef.update(oldShiftData)
           return;
 
         } else {
@@ -44,7 +44,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
 
               jobsCollection.forEach(function (latestJobDoc) {
                 if (latestJobDoc.data().endTime == null) {
-                  shiftRef.shiftRef(oldShiftData)
+                  shiftRef.update(oldShiftData)
                   return;
 
                 } else {
@@ -67,7 +67,7 @@ exports.verifyClockOut = function(shiftRef, oldShiftData ){
           console.log("found a job")
           jobsCollection.forEach(function (latestJobDoc) {
             if (latestJobDoc.data().endTime == null) {
-              shiftRef.shiftRef(oldShiftData)
+              shiftRef.update(oldShiftData)
               return;
 
             } else {
@@ -167,6 +167,9 @@ function updateShiftDuration(shiftRef, jobDoc) {
           var generalMinutes = generalSeconds / 60
           var generalHours = generalMinutes / 60
           generalHours = (generalHours.toFixed(2)) / 1
+          if (generalHours == NaN) {
+            generalHours = null
+          }
 
           shiftRef.update({
             duration: duration,
