@@ -18,24 +18,26 @@ exports.sendNotification = function(request, response, admin) {
     var itemId = request.body.itemId
     var title = request.body.title
     var projectId = request.body.projectId
-
+    if (projectId == null) {
+      projectId = '-1'
+    }
     var db = admin.database();
     var logMsg = {}
-    logMsg.conID = conId
-    logMsg.content = content
+    logMsg.conId = conId
     logMsg.type = type
     logMsg.itemId = itemId
+    logMsg.projectId = projectId
+    logMsg.refPath = '/users/' + conId + '/notifications/' + type
     db.ref('/users/' + conId + '/notifications/' + type).push().child(projectId).set(itemId)
 
-
-      var data = {
-          notificationContent: title,
-          notificationType: String(type)
-      }
-      const notificaition = Notifier.createNotification(COLNotificationID, data, title, content)
-      notifyAllPlatforms(admin,db,conId,notificaition)
-      response.end('Notifications sent');
-      console.log("sendNotification Log:" + String(logMsg))
+    var data = {
+        notificationContent: title,
+        notificationType: String(type)
+    }
+    const notificaition = Notifier.createNotification(COLNotificationID, data, title, content)
+    notifyAllPlatforms(admin,db,conId,notificaition)
+    response.end('Notifications sent');
+    console.log("sendNotification Log:" + JSON.stringify(logMsg))
  }
 
 //returns broken down notification json either filtered by project or aggregated

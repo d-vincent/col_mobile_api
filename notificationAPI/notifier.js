@@ -33,19 +33,20 @@ function notify(admin,deviceTokens,payload){
 }
 
  function notifyDevice(admin,deviceToken,payload){
-   deviceToken.once("value", function (snapshot) {
-       try {
-           admin.messaging().sendToDevice(snapshot.val(), payload)
-               .then(function (response) {
-                   console.log("Successfully sent message:", response);
-               })
-               .catch(function (error) {
-                   console.log("Error sending message:", error);
-               });
-       } catch (err) {
-           console.log("Probably a null token, fam")
-           console.log(err)
-       }
-
-   })
- }
+  deviceToken.once("value", function (snapshot) {
+    if (snapshot.val() != null) {
+      try {
+         admin.messaging().sendToDevice(snapshot.val(), payload)
+             .then(function (response) {
+                 //console.log("Successfully sent message to: ", snapshot.val());
+             })
+             .catch(function (error) {
+                 console.log("Error sending message:", error);
+             });
+      } catch (err) {
+         console.log("Probably a null token, fam: " + deviceToken + 'payload: ' + payload)
+         console.log(err)
+      }
+    }
+  });
+};

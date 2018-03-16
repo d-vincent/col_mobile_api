@@ -211,9 +211,22 @@ exports.sendChatNotifications = functions.database
 //triggers notifications to devices
 exports.sendCOLNotification = functions.https.onRequest((request, response) => {
   if (request.method != "POST") {
-     response.status(400).send("Invalid Request Method: requires POST");
-     return;
-   }
+    response.status(400).send("Invalid Request Method: requires POST");
+    return;
+  }
+  if (request.body.conId == null || request.body.conId == '') {
+    response.status(400).send("Invalid Request Body: requires COL ID {conId}");
+    return;
+  }
+  if (request.body.itemId == null || request.body.itemId == '') {
+    response.status(400).send("Invalid Request Body: requires item id {itemId}");
+    return;
+  }
+
+  if (request.body.type == null || request.body.type == '') {
+    response.status(400).send("Invalid Request Body: requires notification type id {type}");
+    return;
+  }
   COLNotificationAPI.sendNotification(request, response, admin);
 });
 //resets the particular col thing (rfi, messaging, etc) to 0
