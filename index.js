@@ -29,7 +29,8 @@ exports.newBreak = functions.firestore
     var newBreakRef = event.data.ref;
     if (endTime == null) {//this is a break start
         TimeBreakClass.verifyBreakStart(newBreakRef);
-  }
+    }
+    return true;      
 });
 
 exports.updateBreak = functions.firestore
@@ -60,7 +61,8 @@ exports.updateBreak = functions.firestore
             //this job end failure corrective update
         } else if (oldStartTime != null && newStartTime != null && newStartTime != oldStartTime){// old endtime is null and still null,  jsut a generic update
             TimeJobClass.updateBreakDuration (breakRef, oldData)
-        }
+    }
+    return true;    
 })
 
 exports.breakDeleted = functions.firestore
@@ -90,6 +92,7 @@ exports.newJob = functions.firestore
     } else {
 
     }
+    return true;    
 })
 
 exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId}/jobs/{jobId}')
@@ -98,7 +101,8 @@ exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId
         var oldEndTime = event.data.previous.data().endTime;
         var jobRef = event.data.ref;
         var oldDuration = event.data.previous.data().duration;
-        var newDuration = event.data.data().duration;
+      var newDuration = event.data.data().duration;
+      
         var completedBreakDuration = event.data.data().completedBreakDuration;
         var oldBreakDuration = event.data.previous.data().completedBreakDuration;
         if (oldBreakDuration == null && completedBreakDuration != null) {
@@ -116,9 +120,8 @@ exports.updateJob = functions.firestore.document('/users/{userId}/shift/{shiftId
             TimeJobClass.updateJobDuration(shiftRef,jobRef)
         } else if (oldEndTime != null && newEndTime == null) {
             //this job end failure corrective update
-        } else if (newStartTime == oldStartTime && newEndTime == oldEndTime && completedBreakDuration != oldBreakDuration){// old endtime is null and still null,  jsut a generic update
-            TimeJobClass.updateJobDuration(shiftRef, jobRef)
-        }
+      } 
+      return true;    
     })
 
 exports.jobDeleted = functions.firestore
@@ -148,7 +151,8 @@ exports.newShift = functions.firestore
     }else{
       //just adding new shift, prob import
       //should call update duration here.
-    }
+      }
+      return true;      
 });
 
 exports.updateShift = functions.firestore
@@ -169,16 +173,19 @@ exports.updateShift = functions.firestore
             return;
         }else if (oldEndTime == null && newEndTime != null) {
       // this is clock out
-      TimeSheetClass.verifyClockOut(shiftRef,event.data.previous.data())
+          TimeSheetClass.verifyClockOut(shiftRef, event.data.previous.data())
+          
     } else if (oldEndTime != null && newEndTime != null && oldEndTime != newEndTime) {
       //this is just an update, should update all duration
-      TimeSheetClass.updateShiftDuration(shiftRef)
+          TimeSheetClass.updateShiftDuration(shiftRef)
+        
     }else if (oldEndTime != null && newEndTime == null) {
         //this clockout failure corrective update
     }else if (oldEndTime == null && newEndTime == null){// old endtime is null and still null,  jsut a generic update
 
         }
 
+      return true;    
 
 });
 
