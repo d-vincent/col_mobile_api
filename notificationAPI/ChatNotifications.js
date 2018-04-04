@@ -33,7 +33,7 @@ exports.sendChatUpdateNotification = function(event,admin) {
   //this section down here is still not clean. but ill leave it since it seems to work ok.
   gettingUsername.once("value", function(snapshot) {
     userName = snapshot.val();
-    const title = 'New Message from ' + userName
+    const title = 'New chat from ' + userName
     const data = {
         toUserName: userName,
         chatId:chatID,
